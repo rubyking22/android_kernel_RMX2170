@@ -15,6 +15,10 @@
 
 &wcd937x_codec {
 	status = "ok";
+	//def ODM_LQ_EDIT
+	//chengong@ODM_LQ@Multimedia.Audio,2019/10/28,add for micbias
+	qcom,cdc-micbias2-mv = <2700>;
+	//endif
 };
 
 &wcd938x_codec {
@@ -77,18 +81,17 @@
 		"RX_TX DEC3_INP", "TX DEC3 MUX",
 		"SpkrLeft IN", "WSA_SPK1 OUT",
 		"SpkrRight IN", "WSA_SPK2 OUT",
-		"VA MIC BIAS3", "Digital Mic0",
-		"VA MIC BIAS3", "Digital Mic1",
-		"VA MIC BIAS1", "Digital Mic2",
-		"VA MIC BIAS1", "Digital Mic3",
-		"VA MIC BIAS4", "Digital Mic4",
-		"VA MIC BIAS4", "Digital Mic5",
-		"VA DMIC0", "VA MIC BIAS3",
-		"VA DMIC1", "VA MIC BIAS3",
-		"VA DMIC2", "VA MIC BIAS1",
-		"VA DMIC3", "VA MIC BIAS1",
-		"VA DMIC4", "VA MIC BIAS4",
-		"VA DMIC5", "VA MIC BIAS4",
+		"VA_AIF1 CAP", "VA_SWR_CLK",
+		"VA_AIF2 CAP", "VA_SWR_CLK",
+		"VA_AIF3 CAP", "VA_SWR_CLK",
+		"VA MIC BIAS1", "Digital Mic0",
+		"VA MIC BIAS1", "Digital Mic1",
+		"VA MIC BIAS3", "Digital Mic2",
+		"VA MIC BIAS3", "Digital Mic3",
+		"VA DMIC0", "VA MIC BIAS1",
+		"VA DMIC1", "VA MIC BIAS1",
+		"VA DMIC2", "VA MIC BIAS3",
+		"VA DMIC3", "VA MIC BIAS3",
 		"VA SWR_ADC0", "VA_SWR_CLK",
 		"VA SWR_ADC1", "VA_SWR_CLK",
 		"VA SWR_ADC2", "VA_SWR_CLK",
@@ -102,9 +105,7 @@
 		"VA SWR_MIC6", "VA_SWR_CLK",
 		"VA SWR_MIC7", "VA_SWR_CLK",
 		"VA SWR_ADC0", "ADC1_OUTPUT",
-		"VA SWR_ADC1", "ADC2_OUTPUT",
-		"VA SWR_ADC2", "ADC3_OUTPUT",
-		"VA SWR_ADC3", "ADC4_OUTPUT",
+		"VA SWR_ADC2", "ADC2_OUTPUT",
 		"VA SWR_MIC0", "DMIC1_OUTPUT",
 		"VA SWR_MIC1", "DMIC2_OUTPUT",
 		"VA SWR_MIC2", "DMIC3_OUTPUT",
@@ -116,3 +117,17 @@
 	qcom,codec-aux-devs = <&wcd937x_codec>;
 };
 
+//def ODM_LQ_EDIT
+//chengong@ODM_LQ@Multimedia.Audio,2019/10/25,add for disable wsa
+&bolero {
+	qcom,num-macros = <3>;
+};
+
+&wsa_macro {
+	status = "disabled";
+};
+
+&wsa_swr_gpios {
+	status = "disabled";
+};
+//endif

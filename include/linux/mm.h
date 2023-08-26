@@ -519,16 +519,16 @@ unsigned long vmalloc_to_pfn(const void *addr);
  * On nommu, vmalloc/vfree wrap through kmalloc/kfree directly, so there
  * is no special casing required.
  */
-static inline bool is_vmalloc_addr(const void *x)
-{
-#ifdef CONFIG_MMU
-	unsigned long addr = (unsigned long)x;
 
-	return addr >= VMALLOC_START && addr < VMALLOC_END;
+#ifdef CONFIG_MMU
+extern int is_vmalloc_addr(const void *x);
 #else
-	return false;
-#endif
+static inline int is_vmalloc_addr(const void *x)
+{
+	return 0;
 }
+#endif
+
 #ifdef CONFIG_MMU
 extern int is_vmalloc_or_module_addr(const void *x);
 #else
@@ -2778,10 +2778,40 @@ struct reclaim_param {
 	int nr_to_reclaim;
 	/* pages reclaimed */
 	int nr_reclaimed;
+#ifdef VENDOR_EDIT
+#ifdef CONFIG_PROCESS_RECLAIM_ENHANCE
+	/* Kui.Zhang@PSW.BSP.Kernel.Performance, 2018-11-07,
+	 * flag that relcaim inactive pages only */
+	bool inactive_lru;
+#endif
+	/* robin.ren@PSW.BSP.Kernel.Performance, 2019-03-13,
+	 * the target reclaimed process
+	 */
+	struct task_struct *reclaimed_task;
+#endif
 };
 extern struct reclaim_param reclaim_task_anon(struct task_struct *task,
 		int nr_to_reclaim);
+#ifdef VENDOR_EDIT
+/* Kui.Zhang@PSW.BSP.Kernel.Performance, 2019-01-01,
+ * Extract the reclaim core code from task_mmu.c for /proc/process_reclaim*/
+extern ssize_t reclaim_task_write(struct task_struct* task,
+		char *buffer);
+
+#ifdef CONFIG_OPPO_SPECIAL_BUILD
+extern int reclaim_info_show(struct seq_file *s, void *unused);
 #endif
+
+#define PR_PASS		0
+#define PR_SEM_OUT	1
+#define PR_TASK_FG	2
+#define PR_TIME_OUT	3
+#define PR_ADDR_OVER	4
+#define PR_FULL		5
+#define PR_TASK_RUN	6
+#define PR_TASK_DIE	7
+#endif /* VENDOR_EDIT */
+#endif /* CONFIG_PROCESS_RECLAIM */
 
 #endif /* __KERNEL__ */
 #endif /* _LINUX_MM_H */

@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 /* Copyright (c) 2018-2019, The Linux Foundation. All rights reserved.
+=======
+/* Copyright (c) 2018-2020, The Linux Foundation. All rights reserved.
+>>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -143,6 +147,10 @@
 		polling-delay = <0>;
 		thermal-sensors = <&pmxprairie_adc_tm_iio ADC_XO_THERM_PU2>;
 		thermal-governor = "user_space";
+<<<<<<< HEAD
+=======
+		wake-capable-sensor;
+>>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 	};
 
 	pa-therm1-usr {
@@ -150,6 +158,10 @@
 		polling-delay = <0>;
 		thermal-sensors = <&pmxprairie_adc_tm_iio ADC_AMUX_THM1_PU2>;
 		thermal-governor = "user_space";
+<<<<<<< HEAD
+=======
+		wake-capable-sensor;
+>>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 	};
 
 	pa-therm2-usr {
@@ -157,6 +169,10 @@
 		polling-delay = <0>;
 		thermal-sensors = <&pmxprairie_adc_tm_iio ADC_AMUX_THM2_PU2>;
 		thermal-governor = "user_space";
+<<<<<<< HEAD
+=======
+		wake-capable-sensor;
+>>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 	};
 
 	sdx-case-therm-usr {
@@ -164,6 +180,10 @@
 		polling-delay = <0>;
 		thermal-sensors = <&pmxprairie_adc_tm_iio ADC_AMUX_THM3_PU2>;
 		thermal-governor = "user_space";
+<<<<<<< HEAD
+=======
+		wake-capable-sensor;
+>>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 	};
 
 	ambient-therm-usr {
@@ -171,6 +191,10 @@
 		polling-delay = <0>;
 		thermal-sensors = <&pmxprairie_adc_tm_iio ADC_GPIO1_PU2>;
 		thermal-governor = "user_space";
+<<<<<<< HEAD
+=======
+		wake-capable-sensor;
+>>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 	};
 };
 
@@ -181,6 +205,7 @@
 	};
 };
 
+<<<<<<< HEAD
 &soc {
 	bluetooth: bt_qca6390 {
 		compatible = "qca,qca6390";
@@ -188,6 +213,8 @@
 	};
 };
 
+=======
+>>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 &pm8150b_charger {
 	qcom,sec-charger-config = <0>;
 	qcom,auto-recharge-soc = <98>;

@@ -1,4 +1,4 @@
-/* Copyright (c) 2015-2019, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2015-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -131,6 +131,7 @@ static struct icnss_vreg_info icnss_vreg_info[] = {
 	{NULL, "vdd-cx-mx", 752000, 752000, 0, 0, false},
 	{NULL, "vdd-1.8-xo", 1800000, 1800000, 0, 0, false},
 	{NULL, "vdd-1.3-rfa", 1304000, 1304000, 0, 0, false},
+	{NULL, "vdd-3.3-ch1", 3312000, 3312000, 0, 0, false},
 	{NULL, "vdd-3.3-ch0", 3312000, 3312000, 0, 0, false},
 };
 
@@ -2631,6 +2632,7 @@ static int icnss_smmu_init(struct icnss_priv *priv)
 	int s1_bypass = 1;
 	int fast = 1;
 	int stall_disable = 1;
+	int non_fatal_faults = 1;
 	int ret = 0;
 
 	icnss_pr_dbg("Initializing SMMU\n");
@@ -2684,6 +2686,16 @@ static int icnss_smmu_init(struct icnss_priv *priv)
 			goto set_attr_fail;
 		}
 		icnss_pr_dbg("SMMU STALL DISABLE map set\n");
+
+		ret = iommu_domain_set_attr(mapping->domain,
+					    DOMAIN_ATTR_NON_FATAL_FAULTS,
+					    &non_fatal_faults);
+		if (ret) {
+			icnss_pr_err("Failed to set SMMU non_fatal_faults attribute, err = %d\n",
+				    ret);
+			goto set_attr_fail;
+		}
+		icnss_pr_dbg("SMMU NON FATAL map set\n");
 	}
 
 	ret = arm_iommu_attach_device(&priv->pdev->dev, mapping);
@@ -3636,6 +3648,25 @@ static int icnss_get_vbatt_info(struct icnss_priv *priv)
 
 	return 0;
 }
+#ifdef VENDOR_EDIT
+//Laixin@PSW.CN.WiFi.Basic.Switch.1069763, 2018/08/08
+//Add for: check fw status for switch issue
+static void icnss_create_fw_state_kobj(void);
+static ssize_t icnss_show_fw_ready(struct device_driver *driver, char *buf)
+{
+	bool firmware_ready = icnss_is_fw_ready();
+	return sprintf(buf, "%s", (firmware_ready ? "ready" : "not_ready"));
+}
+
+struct driver_attribute fw_ready_attr = {
+	.attr = {
+		.name = "firmware_ready",
+		.mode = S_IRUGO,
+	},
+	.show = icnss_show_fw_ready,
+	//read only so we don't need to impl store func
+};
+#endif /* VENDOR_EDIT */
 
 static int icnss_probe(struct platform_device *pdev)
 {
@@ -3860,6 +3891,12 @@ static int icnss_probe(struct platform_device *pdev)
 
 	init_completion(&priv->unblock_shutdown);
 
+	#ifdef VENDOR_EDIT
+	//Laixin@PSW.CN.WiFi.Basic.Switch.1069763, 2018/08/08
+	//Add for: check fw status for switch issue
+	icnss_create_fw_state_kobj();
+	#endif /* VENDOR_EDIT */
+
 	icnss_pr_info("Platform driver probed successfully\n");
 
 	return 0;
@@ -4056,6 +4093,16 @@ static struct platform_driver icnss_driver = {
 		.of_match_table = icnss_dt_match,
 	},
 };
+
+#ifdef VENDOR_EDIT
+//Laixin@PSW.CN.WiFi.Basic.Switch.1069763, 2018/08/08
+//Add for: check fw status for switch issue
+static void icnss_create_fw_state_kobj(void) {
+	if (driver_create_file(&(icnss_driver.driver), &fw_ready_attr)) {
+		icnss_pr_info("failed to create %s", fw_ready_attr.attr.name);
+	}
+}
+#endif /* VENDOR_EDIT */
 
 static int __init icnss_initialize(void)
 {

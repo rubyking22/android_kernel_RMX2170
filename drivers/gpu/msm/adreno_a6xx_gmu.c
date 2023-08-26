@@ -1,4 +1,4 @@
-/* Copyright (c) 2018-2019, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2018-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -830,6 +830,18 @@ static bool a6xx_gmu_gx_is_on(struct adreno_device *adreno_dev)
 }
 
 /*
+ * a6xx_gmu_cx_is_on() - Check if CX is on using GPUCC register
+ * @device - Pointer to KGSL device struct
+ */
+static bool a6xx_gmu_cx_is_on(struct kgsl_device *device)
+{
+	unsigned int val;
+
+	gmu_core_regread(device, A6XX_GPU_CC_CX_GDSCR, &val);
+	return (val & BIT(31));
+}
+
+/*
  * a6xx_gmu_sptprac_is_on() - Check if SPTP is on using pwr status register
  * @adreno_dev - Pointer to adreno_device
  * This check should only be performed if the keepalive bit is set or it
@@ -901,7 +913,7 @@ static int a6xx_gmu_wait_for_lowest_idle(struct adreno_device *adreno_dev)
 	if (!gmu_core_gpmu_isenabled(device))
 		return 0;
 
-	ts1 = read_AO_counter(device);
+	ts1 = a6xx_gmu_read_ao_counter(device);
 
 	t = jiffies + msecs_to_jiffies(GMU_IDLE_TIMEOUT);
 	do {
@@ -916,7 +928,7 @@ static int a6xx_gmu_wait_for_lowest_idle(struct adreno_device *adreno_dev)
 		usleep_range(10, 100);
 	} while (!time_after(jiffies, t));
 
-	ts2 = read_AO_counter(device);
+	ts2 = a6xx_gmu_read_ao_counter(device);
 	/* Check one last time */
 
 	gmu_core_regread(device, A6XX_GPU_GMU_CX_GMU_RPMH_POWER_STATE, &reg);
@@ -925,16 +937,13 @@ static int a6xx_gmu_wait_for_lowest_idle(struct adreno_device *adreno_dev)
 	if (idle_transition_complete(gmu->idle_level, reg, reg1))
 		return 0;
 
-	ts3 = read_AO_counter(device);
+	ts3 = a6xx_gmu_read_ao_counter(device);
 
 	/* Collect abort data to help with debugging */
 	gmu_core_regread(device, A6XX_GPU_GMU_AO_GPU_CX_BUSY_STATUS, &reg2);
-	kgsl_regread(device, A6XX_CP_STATUS_1, &reg3);
-	gmu_core_regread(device, A6XX_GMU_RBBM_INT_UNMASKED_STATUS, &reg4);
-	gmu_core_regread(device, A6XX_GMU_GMU_PWR_COL_KEEPALIVE, &reg5);
-	kgsl_regread(device, A6XX_CP_CP2GMU_STATUS, &reg6);
-	kgsl_regread(device, A6XX_CP_CONTEXT_SWITCH_CNTL, &reg7);
-	gmu_core_regread(device, A6XX_GMU_AO_SPARE_CNTL, &reg8);
+	gmu_core_regread(device, A6XX_GMU_RBBM_INT_UNMASKED_STATUS, &reg3);
+	gmu_core_regread(device, A6XX_GMU_GMU_PWR_COL_KEEPALIVE, &reg4);
+	gmu_core_regread(device, A6XX_GMU_AO_SPARE_CNTL, &reg5);
 
 	dev_err(&gmu->pdev->dev,
 		"----------------------[ GMU error ]----------------------\n");
@@ -944,14 +953,23 @@ static int a6xx_gmu_wait_for_lowest_idle(struct adreno_device *adreno_dev)
 		"Timestamps: %llx %llx %llx\n", ts1, ts2, ts3);
 	dev_err(&gmu->pdev->dev,
 		"RPMH_POWER_STATE=%x SPTPRAC_PWR_CLK_STATUS=%x\n", reg, reg1);
-	dev_err(&gmu->pdev->dev,
-		"CX_BUSY_STATUS=%x CP_STATUS_1=%x\n", reg2, reg3);
+	dev_err(&gmu->pdev->dev, "CX_BUSY_STATUS=%x\n", reg2);
 	dev_err(&gmu->pdev->dev,
 		"RBBM_INT_UNMASKED_STATUS=%x PWR_COL_KEEPALIVE=%x\n",
-		reg4, reg5);
-	dev_err(&gmu->pdev->dev,
-		"CP2GMU_STATUS=%x CONTEXT_SWITCH_CNTL=%x AO_SPARE_CNTL=%x\n",
-		reg6, reg7, reg8);
+		reg3, reg4);
+	dev_err(&gmu->pdev->dev, "A6XX_GMU_AO_SPARE_CNTL=%x\n", reg5);
+
+	/* Access GX registers only when GX is ON */
+	if (is_on(reg1)) {
+		kgsl_regread(device, A6XX_CP_STATUS_1, &reg6);
+		kgsl_regread(device, A6XX_CP_CP2GMU_STATUS, &reg7);
+		kgsl_regread(device, A6XX_CP_CONTEXT_SWITCH_CNTL, &reg8);
+
+		dev_err(&gmu->pdev->dev, "A6XX_CP_STATUS_1=%x\n", reg6);
+		dev_err(&gmu->pdev->dev,
+			"CP2GMU_STATUS=%x CONTEXT_SWITCH_CNTL=%x\n",
+			reg7, reg8);
+	}
 
 	WARN_ON(1);
 	return -ETIMEDOUT;
@@ -966,14 +984,14 @@ static int a6xx_gmu_wait_for_idle(struct adreno_device *adreno_dev)
 	unsigned int status2;
 	uint64_t ts1;
 
-	ts1 = read_AO_counter(device);
+	ts1 = a6xx_gmu_read_ao_counter(device);
 	if (timed_poll_check(device, A6XX_GPU_GMU_AO_GPU_CX_BUSY_STATUS,
 			0, GMU_START_TIMEOUT, CXGXCPUBUSYIGNAHB)) {
 		gmu_core_regread(device,
 				A6XX_GPU_GMU_AO_GPU_CX_BUSY_STATUS2, &status2);
 		dev_err(&gmu->pdev->dev,
 				"GMU not idling: status2=0x%x %llx %llx\n",
-				status2, ts1, read_AO_counter(device));
+				status2, ts1, a6xx_gmu_read_ao_counter(device));
 		return -ETIMEDOUT;
 	}
 
@@ -1634,6 +1652,31 @@ static bool a6xx_gmu_is_initialized(struct adreno_device *adreno_dev)
 	return (val == PDC_ENABLE_REG_VALUE);
 }
 
+/*
+ * a6xx_gmu_read_ao_counter() - Returns the 64bit always on counter value
+ *
+ * @device: Pointer to KGSL device
+ */
+u64 a6xx_gmu_read_ao_counter(struct kgsl_device *device)
+{
+	unsigned int l, h, h1;
+
+	gmu_core_regread(device, A6XX_GMU_CX_GMU_ALWAYS_ON_COUNTER_H, &h);
+	gmu_core_regread(device, A6XX_GMU_CX_GMU_ALWAYS_ON_COUNTER_L, &l);
+	gmu_core_regread(device, A6XX_GMU_CX_GMU_ALWAYS_ON_COUNTER_H, &h1);
+
+	/*
+	 * If there's no change in COUNTER_H we have no overflow so return,
+	 * otherwise read COUNTER_L again
+	 */
+
+	if (h == h1)
+		return (uint64_t) l | ((uint64_t) h << 32);
+
+	gmu_core_regread(device, A6XX_GMU_CX_GMU_ALWAYS_ON_COUNTER_L, &l);
+	return (uint64_t) l | ((uint64_t) h1 << 32);
+}
+
 struct gmu_dev_ops adreno_a6xx_gmudev = {
 	.load_firmware = a6xx_gmu_load_firmware,
 	.oob_set = a6xx_gmu_oob_set,
@@ -1644,6 +1687,7 @@ struct gmu_dev_ops adreno_a6xx_gmudev = {
 	.enable_lm = a6xx_gmu_enable_lm,
 	.rpmh_gpu_pwrctrl = a6xx_gmu_rpmh_gpu_pwrctrl,
 	.gx_is_on = a6xx_gmu_gx_is_on,
+	.cx_is_on = a6xx_gmu_cx_is_on,
 	.wait_for_lowest_idle = a6xx_gmu_wait_for_lowest_idle,
 	.wait_for_gmu_idle = a6xx_gmu_wait_for_idle,
 	.ifpc_store = a6xx_gmu_ifpc_store,
@@ -1651,6 +1695,7 @@ struct gmu_dev_ops adreno_a6xx_gmudev = {
 	.snapshot = a6xx_gmu_snapshot,
 	.wait_for_active_transition = a6xx_gmu_wait_for_active_transition,
 	.is_initialized = a6xx_gmu_is_initialized,
+	.read_ao_counter = a6xx_gmu_read_ao_counter,
 	.gmu2host_intr_mask = HFI_IRQ_MASK,
 	.gmu_ao_intr_mask = GMU_AO_INT_MASK,
 };

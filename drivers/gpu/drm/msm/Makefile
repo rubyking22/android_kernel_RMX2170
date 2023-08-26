@@ -7,6 +7,7 @@ ccflags-y += -Idrivers/gpu/drm/msm/sde
 ccflags-y += -Idrivers/media/platform/msm/sde/rotator
 ccflags-y += -Idrivers/gpu/drm/msm/hdmi
 ccflags-$(CONFIG_DRM_SDE_SHD) += -Idrivers/gpu/drm/msm/shd
+ccflags-$(CONFIG_DRM_SDE_SHP) += -Idrivers/gpu/drm/msm/shp
 
 msm_drm-y := \
 	dp/dp_usbpd.o \
@@ -21,7 +22,11 @@ msm_drm-y := \
 	dp/dp_ctrl.o \
 	dp/dp_audio.o \
 	dp/dp_debug.o \
+	dp/dp_mst_sim_helper.o \
+	dp/dp_mst_sim.o \
 	dp/dp_hpd.o \
+	dp/dp_aux_bridge.o \
+	dp/dp_bridge_hpd.o \
 	dp/dp_gpio_hpd.o \
 	dp/dp_lphw_hpd.o \
 	dp/dp_display.o \
@@ -154,6 +159,8 @@ msm_drm-$(CONFIG_DRM_MSM_DSI_STAGING) += dsi-staging/dsi_phy.o \
 				dsi-staging/dsi_display.o \
 				dsi-staging/dsi_panel.o \
 				dsi-staging/dsi_clk_manager.o \
+				dsi-staging/dsi_oppo_support.o \
+				dsi-staging/oppo_display_private_api.o\
 				dsi-staging/dsi_display_test.o
 
 msm_drm-$(CONFIG_DSI_PARSER) += dsi-staging/dsi_parser.o
@@ -192,6 +199,8 @@ msm_drm-$(CONFIG_DRM_SDE_WB) += sde/sde_wb.o \
 msm_drm-$(CONFIG_DRM_SDE_SHD) += shd/shd_drm.o \
 	shd/shd_hw.o \
 	shd/sde_encoder_phys_shd.o
+
+msm_drm-$(CONFIG_DRM_SDE_SHP) += shp/shp_drm.o
 
 msm_drm-$(CONFIG_DRM_MSM) += \
 	msm_atomic.o \

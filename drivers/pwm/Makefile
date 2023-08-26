@@ -34,6 +34,10 @@ obj-$(CONFIG_PWM_OMAP_DMTIMER)	+= pwm-omap-dmtimer.o
 obj-$(CONFIG_PWM_PCA9685)	+= pwm-pca9685.o
 obj-$(CONFIG_PWM_PUV3)		+= pwm-puv3.o
 obj-$(CONFIG_PWM_PXA)		+= pwm-pxa.o
+<<<<<<< HEAD
+=======
+obj-$(CONFIG_PWM_QCOM)		+= pwm-qcom.o
+>>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 obj-$(CONFIG_PWM_RCAR)		+= pwm-rcar.o
 obj-$(CONFIG_PWM_QTI_LPG)	+= pwm-qti-lpg.o
 obj-$(CONFIG_PWM_RENESAS_TPU)	+= pwm-renesas-tpu.o

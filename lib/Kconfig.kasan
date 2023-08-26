@@ -6,6 +6,14 @@ if HAVE_ARCH_KASAN
 config KASAN
 	bool "KASan: runtime memory debugger"
 	depends on SLUB || (SLAB && !DEBUG_SLAB)
+<<<<<<< HEAD
+=======
+	#ifdef VENDOR_EDIT
+	#Wen.Luo@Bsp.Kernel.Stability, 2018/12/05, OPPO_KASAN_CONFIG
+	default y if OPPO_KASAN_TEST = "true"
+	default n
+	#endif
+>>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 	select CONSTRUCTORS
 	select STACKDEPOT
 	help
@@ -34,7 +42,16 @@ config KASAN_EXTRA
 choice
 	prompt "Instrumentation type"
 	depends on KASAN
+<<<<<<< HEAD
 	default KASAN_OUTLINE
+=======
+	#ifdef VENDOR_EDIT
+	#Wen.Luo@Bsp.Kernel.Stability, 2018/12/05, #OPPO_KASAN_CONFIG
+	#default KASAN_INLINE
+	#else
+	default KASAN_OUTLINE
+	#endif
+>>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 
 config KASAN_OUTLINE
 	bool "Outline instrumentation"

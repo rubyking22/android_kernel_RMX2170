@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2019-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -69,12 +69,12 @@
 			qcom,swr-mstr-irq-wakeup-capable = <1>;
 			wcd938x_tx_slave: wcd938x-tx-slave {
 				compatible = "qcom,wcd938x-slave";
-				reg = <0x0 0x01170223>;
+				reg = <0x0D 0x01170223>;
 			};
 			wcd937x_tx_slave: wcd937x-tx-slave {
 				status = "disabled";
 				compatible = "qcom,wcd937x-slave";
-				reg = <0x0 0x01170223>;
+				reg = <0x0A 0x01170223>;
 			};
 		};
 	};
@@ -111,12 +111,12 @@
 			qcom,swr-clock-stop-mode0 = <1>;
 			wcd938x_rx_slave: wcd938x-rx-slave {
 				compatible = "qcom,wcd938x-slave";
-				reg = <0x0 0x01170224>;
+				reg = <0x0D 0x01170224>;
 			};
 			wcd937x_rx_slave: wcd937x-rx-slave {
 				status = "disabled";
 				compatible = "qcom,wcd937x-slave";
-				reg = <0x0 0x01170224>;
+				reg = <0x0A 0x01170224>;
 			};
 		};
 	};
@@ -132,6 +132,10 @@
 		qcom,wsa-bcl-pmic-params = /bits/ 8 <0x00 0x00 0x1E>;
 		qcom,default-clk-id = <TX_CORE_CLK>;
 		swr0: wsa_swr_master {
+			/*#ifdef ODM_LQ_EDIT*/
+			/*shentaotao@ODM_LQ@Multimedia.Audio,2019/10/08,modified for audio bringup*/
+			status = "disabled";
+			/*#endif ODM_LQ_EDIT*/
 			compatible = "qcom,swr-mstr";
 			#address-cells = <2>;
 			#size-cells = <0>;
@@ -153,26 +157,30 @@
 			qcom,swr-num-dev = <2>;
 			wsa881x_0211: wsa881x@20170211 {
 				compatible = "qcom,wsa881x";
-				reg = <0x0 0x20170211>;
+				reg = <0x10 0x20170211>;
 				qcom,spkr-sd-n-node = <&wsa_spkr_en1>;
+				qcom,bolero-handle = <&bolero>;
 			};
 
 			wsa881x_0212: wsa881x@20170212 {
 				compatible = "qcom,wsa881x";
-				reg = <0x0 0x20170212>;
+				reg = <0x10 0x20170212>;
 				qcom,spkr-sd-n-node = <&wsa_spkr_en2>;
+				qcom,bolero-handle = <&bolero>;
 			};
 
 			wsa881x_0213: wsa881x@21170213 {
 				compatible = "qcom,wsa881x";
-				reg = <0x0 0x21170213>;
+				reg = <0x10 0x21170213>;
 				qcom,spkr-sd-n-node = <&wsa_spkr_en1>;
+				qcom,bolero-handle = <&bolero>;
 			};
 
 			wsa881x_0214: wsa881x@21170214 {
 				compatible = "qcom,wsa881x";
-				reg = <0x0 0x21170214>;
+				reg = <0x10 0x21170214>;
 				qcom,spkr-sd-n-node = <&wsa_spkr_en2>;
+				qcom,bolero-handle = <&bolero>;
 			};
 		};
 
@@ -228,6 +236,7 @@
 		qcom,cdc-micbias1-mv = <1800>;
 		qcom,cdc-micbias2-mv = <1800>;
 		qcom,cdc-micbias3-mv = <1800>;
+		qcom,cdc-micbias4-mv = <1800>;
 
 		qcom,cdc-static-supplies = "cdc-vdd-rxtx",
 					   "cdc-vddio",
@@ -328,18 +337,19 @@
 		"RX_TX DEC3_INP", "TX DEC3 MUX",
 		"SpkrLeft IN", "WSA_SPK1 OUT",
 		"SpkrRight IN", "WSA_SPK2 OUT",
-		"VA MIC BIAS3", "Digital Mic0",
-		"VA MIC BIAS3", "Digital Mic1",
-		"VA MIC BIAS1", "Digital Mic2",
-		"VA MIC BIAS1", "Digital Mic3",
+		"VA_AIF1 CAP", "VA_SWR_CLK",
+		"VA_AIF2 CAP", "VA_SWR_CLK",
+		"VA_AIF3 CAP", "VA_SWR_CLK",
+		"VA MIC BIAS1", "Digital Mic0",
+		"VA MIC BIAS1", "Digital Mic1",
+		"VA MIC BIAS3", "Digital Mic2",
+		"VA MIC BIAS3", "Digital Mic3",
 		"VA MIC BIAS4", "Digital Mic4",
-		"VA MIC BIAS4", "Digital Mic5",
-		"VA DMIC0", "VA MIC BIAS3",
-		"VA DMIC1", "VA MIC BIAS3",
-		"VA DMIC2", "VA MIC BIAS1",
-		"VA DMIC3", "VA MIC BIAS1",
+		"VA DMIC0", "VA MIC BIAS1",
+		"VA DMIC1", "VA MIC BIAS1",
+		"VA DMIC2", "VA MIC BIAS3",
+		"VA DMIC3", "VA MIC BIAS3",
 		"VA DMIC4", "VA MIC BIAS4",
-		"VA DMIC5", "VA MIC BIAS4",
 		"VA SWR_ADC0", "VA_SWR_CLK",
 		"VA SWR_ADC1", "VA_SWR_CLK",
 		"VA SWR_ADC2", "VA_SWR_CLK",
@@ -372,19 +382,35 @@
 	asoc-codec  = <&stub_codec>, <&bolero>, <&ext_disp_audio_codec>;
 	asoc-codec-names = "msm-stub-codec.1", "bolero_codec",
 				"msm-ext-disp-audio-codec-rx";
+	/*#ifdef ODM_LQ_EDIT*/
+	/*shentaotao@ODM_LQ@Multimedia.Audio,2019/10/08,modified for audio bringup*/
+	qcom,wsa-max-devs = <0>;
+	/*
+	#else
 	qcom,wsa-max-devs = <2>;
+	*/
+	/*#endif ODM_LQ_EDIT*/
+
 	qcom,wsa-devs = <&wsa881x_0211>, <&wsa881x_0212>,
 			<&wsa881x_0213>, <&wsa881x_0214>;
 	qcom,wsa-aux-dev-prefix = "SpkrLeft", "SpkrRight",
 				  "SpkrLeft", "SpkrRight";
 	qcom,codec-max-aux-devs = <1>;
 	qcom,codec-aux-devs = <&wcd938x_codec>;
-	qcom,msm_audio_ssr_devs = <&audio_apr>, <&q6core>, <&bolero>,
+    qcom,msm_audio_ssr_devs = <&audio_apr>, <&q6core>, <&bolero>,
 				  <&lpi_tlmm>;
+	/*#ifdef ODM_LQ_EDIT*/
+	/*shentaotao@ODM_LQ@Multimedia.Audio,2019/10/08,modified for audio bringup*/
+	qcom,quin-mi2s-gpios = <&cdc_quin_mi2s_gpios>;
+	/*#endif ODM_LQ_EDIT*/
 };
 
 &q6core {
 	cdc_dmic01_gpios: cdc_dmic01_pinctrl {
+		/*#ifdef ODM_LQ_EDIT*/
+		/*shentaotao@ODM_LQ@Multimedia.Audio,2019/10/08,modified for audio bringup*/
+		status = "disabled";
+		/*#endif ODM_LQ_EDIT*/
 		compatible = "qcom,msm-cdc-pinctrl";
 		pinctrl-names = "aud_active", "aud_sleep";
 		pinctrl-0 = <&cdc_dmic01_clk_active &cdc_dmic01_data_active>;
@@ -393,6 +419,10 @@
 	};
 
 	cdc_dmic23_gpios: cdc_dmic23_pinctrl {
+		/*#ifdef ODM_LQ_EDIT*/
+		/*shentaotao@ODM_LQ@Multimedia.Audio,2019/10/08,modified for audio bringup*/
+		status = "disabled";
+		/*#endif ODM_LQ_EDIT*/
 		compatible = "qcom,msm-cdc-pinctrl";
 		pinctrl-names = "aud_active", "aud_sleep";
 		pinctrl-0 = <&cdc_dmic23_clk_active &cdc_dmic23_data_active>;
@@ -401,6 +431,10 @@
 	};
 
 	cdc_dmic45_gpios: cdc_dmic45_pinctrl {
+		/*#ifdef ODM_LQ_EDIT*/
+		/*shentaotao@ODM_LQ@Multimedia.Audio,2019/10/08,modified for audio bringup*/
+		status = "disabled";
+		/*#endif ODM_LQ_EDIT*/
 		compatible = "qcom,msm-cdc-pinctrl";
 		pinctrl-names = "aud_active", "aud_sleep";
 		pinctrl-0 = <&cdc_dmic45_clk_active &cdc_dmic45_data_active>;
@@ -428,15 +462,35 @@
 		compatible = "qcom,msm-cdc-pinctrl";
 		pinctrl-names = "aud_active", "aud_sleep";
 		pinctrl-0 = <&tx_swr_clk_active &tx_swr_data0_active
-			     &tx_swr_data1_active &tx_swr_data2_active>;
+			    &tx_swr_data1_active &tx_swr_data2_active>;
 		pinctrl-1 = <&tx_swr_clk_sleep &tx_swr_data0_sleep
 			    &tx_swr_data1_sleep &tx_swr_data2_sleep>;
 		qcom,lpi-gpios;
+		qcom,chip-wakeup-reg = <0x01FFB000>;
+		qcom,chip-wakeup-maskbit = <0>;
+		qcom,chip-wakeup-default-val = <0x1>;
 	};
+
+	/*#ifdef ODM_LQ_EDIT*/
+	/*shentaotao@ODM_LQ@Multimedia.Audio,2019/10/08,modified for audio bringup*/
+	cdc_quin_mi2s_gpios: msm_cdc_pinctrl_quin {
+		compatible = "qcom,msm-cdc-pinctrl";
+		pinctrl-names = "aud_active", "aud_sleep";
+		pinctrl-0 = <&quin_mi2s_sck_active &quin_mi2s_ws_active
+			    &quin_mi2s_sd0_active &quin_mi2s_sd1_active>;
+		pinctrl-1 = <&quin_mi2s_sck_sleep &quin_mi2s_ws_sleep
+			    &quin_mi2s_sd0_sleep &quin_mi2s_sd1_sleep>;
+		qcom,lpi-gpios;
+	};
+	/*#endif ODM_LQ_EDIT*/
 };
 
 &soc {
 	wsa_spkr_en1: wsa_spkr_en1_pinctrl {
+		/*#ifdef ODM_LQ_EDIT*/
+		/*shentaotao@ODM_LQ@Multimedia.Audio,2019/10/08,modified for audio bringup*/
+		status = "disabled";
+		/*#endif ODM_LQ_EDIT*/
 		compatible = "qcom,msm-cdc-pinctrl";
 		pinctrl-names = "aud_active", "aud_sleep";
 		pinctrl-0 = <&spkr_1_sd_n_active>;
@@ -444,6 +498,10 @@
 	};
 
 	wsa_spkr_en2: wsa_spkr_en2_pinctrl {
+		/*#ifdef ODM_LQ_EDIT*/
+		/*shentaotao@ODM_LQ@Multimedia.Audio,2019/10/08,modified for audio bringup*/
+		status = "disabled";
+		/*#endif ODM_LQ_EDIT*/
 		compatible = "qcom,msm-cdc-pinctrl";
 		pinctrl-names = "aud_active", "aud_sleep";
 		pinctrl-0 = <&spkr_2_sd_n_active>;

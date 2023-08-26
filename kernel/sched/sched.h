@@ -2123,7 +2123,6 @@ cpu_util_freq_walt(int cpu, struct sched_walt_cpu_load *walt_load)
 
 		nl = div64_u64(nl * (100 + boost),
 		walt_cpu_util_freq_divisor);
-		pl = div64_u64(pl * (100 + boost), 100);
 
 		walt_load->prev_window_util = util;
 		walt_load->nl = nl;
@@ -2854,11 +2853,15 @@ static inline enum sched_boost_policy sched_boost_policy(void)
 }
 
 extern unsigned int sched_boost_type;
+#ifdef VENDOR_EDIT
+//cuixiaogang@SRC.hypnus. remove this inline function for hypnus feature
+extern int sched_boost(void);
+#else
 static inline int sched_boost(void)
 {
 	return sched_boost_type;
 }
-
+#endif /* VENDOR_EDIT */
 extern int preferred_cluster(struct sched_cluster *cluster,
 						struct task_struct *p);
 extern struct sched_cluster *rq_cluster(struct rq *rq);

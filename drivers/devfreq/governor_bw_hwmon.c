@@ -48,6 +48,7 @@ struct hwmon_node {
 	unsigned int hyst_trigger_count;
 	unsigned int hyst_length;
 	unsigned int idle_mbps;
+	unsigned int use_ab;
 	unsigned int mbps_zones[NUM_MBPS_ZONES];
 
 	unsigned long prev_ab;
@@ -114,10 +115,18 @@ static ssize_t store_##name(struct device *dev,				\
 	return count;							\
 }
 
+#ifdef VENDOR_EDIT
+//cuixiaogang@SRC.hypnus. 2019.6.12. change permission for hypnusd devbw feature
+#define gov_attr(__attr, min, max)	\
+show_attr(__attr)			\
+store_attr(__attr, (min), (max))	\
+static DEVICE_ATTR(__attr, 0664, show_##__attr, store_##__attr)
+#else
 #define gov_attr(__attr, min, max)	\
 show_attr(__attr)			\
 store_attr(__attr, (min), (max))	\
 static DEVICE_ATTR(__attr, 0644, show_##__attr, store_##__attr)
+#endif /* VENDOR_EDIT */
 
 #define show_list_attr(name, n) \
 static ssize_t show_list_##name(struct device *dev,			\
@@ -467,8 +476,10 @@ static unsigned long get_bw_and_set_irq(struct hwmon_node *node,
 	}
 
 	node->prev_ab = new_bw;
-	if (ab)
+	if (ab && node->use_ab)
 		*ab = roundup(new_bw, node->bw_step);
+	else if (ab)
+		*ab = 0;
 
 	*freq = (new_bw * 100) / io_percent;
 	trace_bw_hwmon_update(dev_name(node->hw->df->dev.parent),
@@ -691,11 +702,6 @@ static int gov_resume(struct devfreq *df)
 	if (!node->hw->resume_hwmon)
 		return -EPERM;
 
-	if (!node->resume_freq) {
-		dev_warn(df->dev.parent, "Governor already resumed!\n");
-		return -EBUSY;
-	}
-
 	mutex_lock(&df->lock);
 	update_devfreq(df);
 	mutex_unlock(&df->lock);
@@ -777,6 +783,7 @@ gov_attr(hist_memory, 0U, 90U);
 gov_attr(hyst_trigger_count, 0U, 90U);
 gov_attr(hyst_length, 0U, 90U);
 gov_attr(idle_mbps, 0U, 2000U);
+gov_attr(use_ab, 0U, 1U);
 gov_list_attr(mbps_zones, NUM_MBPS_ZONES, 0U, UINT_MAX);
 
 static struct attribute *dev_attr[] = {
@@ -793,6 +800,7 @@ static struct attribute *dev_attr[] = {
 	&dev_attr_hyst_trigger_count.attr,
 	&dev_attr_hyst_length.attr,
 	&dev_attr_idle_mbps.attr,
+	&dev_attr_use_ab.attr,
 	&dev_attr_mbps_zones.attr,
 	&dev_attr_throttle_adj.attr,
 	NULL,
@@ -936,6 +944,7 @@ int register_bw_hwmon(struct device *dev, struct bw_hwmon *hwmon)
 	node->hyst_trigger_count = 3;
 	node->hyst_length = 0;
 	node->idle_mbps = 400;
+	node->use_ab = 1;
 	node->mbps_zones[0] = 0;
 	node->hw = hwmon;
 

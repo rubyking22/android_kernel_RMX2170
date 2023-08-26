@@ -30,6 +30,12 @@
 #define SUBTYPE_MASK		GENMASK(7, 0)
 #define INT_RT_STS_OFFSET	0x10
 
+/****************************************************/
+#ifndef VENDOR_EDIT
+#define VENDOR_EDIT "VENDOR_EDIT"
+#endif
+/**************************************************/
+
 /********************************
  *  CHGR Peripheral Registers  *
  ********************************/
@@ -64,6 +70,21 @@ enum {
 #define BAT_TEMP_STATUS_TOO_HOT_AFP_BIT		BIT(1)
 #define BAT_TEMP_STATUS_TOO_COLD_AFP_BIT	BIT(0)
 
+#ifdef VENDOR_EDIT
+#ifdef CONFIG_OPPO_SM6250_CHARGER
+/* Yichun.Chen  PSW.BSP.CHG  2019-04-08  for charge */
+#define BATTERY_CHARGER_STATUS_8_REG			(CHGR_BASE + 0x0E)
+//#define PRE_FAST_BIT					BIT(7)
+#define PRE_FULLON_BIT					BIT(6)
+//#define PRE_RCHG_BIT					BIT(5)
+#define PRE_INHIBIT_BIT					BIT(3)
+#define PRE_OVRV_BIT					BIT(4)
+#define PRE_TERM_BIT					BIT(2)
+//#define BAT_ID_BMISS_CMP_BIT				BIT(1)
+//#define THERM_CMP_BIT					BIT(0)
+#endif
+#endif /*VENDOR_EDIT*/
+
 #define CHARGING_ENABLE_CMD_REG			(CHGR_BASE + 0x42)
 #define CHARGING_ENABLE_CMD_BIT			BIT(0)
 
@@ -77,6 +98,14 @@ enum {
 #define CHARGER_INHIBIT_BIT			BIT(0)
 
 #define CHGR_FAST_CHARGE_CURRENT_CFG_REG	(CHGR_BASE + 0x61)
+
+#ifdef VENDOR_EDIT
+#ifdef CONFIG_OPPO_SM6250_CHARGER
+/* Yichun.Chen  PSW.BSP.CHG  2019-04-08  for charge */
+#define TCCC_CHARGE_CURRENT_TERMINATION_CFG_REG		(CHGR_BASE + 0x63)
+#define TCCC_CHARGE_CURRENT_TERMINATION_SETTING_MASK	GENMASK(3, 0)
+#endif
+#endif
 
 #define CHGR_ADC_ITERM_UP_THD_MSB_REG		(CHGR_BASE + 0x67)
 #define CHGR_ADC_ITERM_UP_THD_LSB_REG		(CHGR_BASE + 0x68)
@@ -152,6 +181,12 @@ enum {
 #define DCDC_FSW_SEL_REG			(DCDC_BASE + 0x50)
 
 #define DCDC_OTG_CURRENT_LIMIT_CFG_REG		(DCDC_BASE + 0x52)
+#ifdef VENDOR_EDIT
+#ifdef CONFIG_OPPO_SM6250_CHARGER
+/* Kun.Zhang@PSW.BSP.CHG.Basic, 2019/09/13, Add for set otg current */
+#define DCDC_OTG_CURRENT_LIMIT_1000MA_BIT	BIT(2)
+#endif
+#endif /* VENDOR_EDIT */
 
 #define DCDC_OTG_CFG_REG			(DCDC_BASE + 0x53)
 #define OTG_EN_SRC_CFG_BIT			BIT(1)
@@ -258,6 +293,13 @@ enum {
 #define SINGLE_DECREMENT_BIT			BIT(1)
 #define SINGLE_INCREMENT_BIT			BIT(0)
 
+#define USBIN_ADAPTER_ALLOW_OVERRIDE_REG	(USBIN_BASE + 0x44)
+#define CONTINUOUS				BIT(3)
+#define FORCE_12V				BIT(2)
+#define FORCE_9V				BIT(1)
+#define FORCE_5V				BIT(0)
+#define FORCE_NULL				0
+
 #define USB_CMD_PULLDOWN_REG			(USBIN_BASE + 0x45)
 #define EN_PULLDOWN_USB_IN_BIT			BIT(0)
 
@@ -271,19 +313,6 @@ enum {
 	HVDCP_PULSE_COUNT_MAX_QC2_9V = 0x40,
 	HVDCP_PULSE_COUNT_MAX_QC2_12V = 0x80,
 	HVDCP_PULSE_COUNT_MAX_QC2_INVALID = 0xC0
-};
-
-#define USBIN_ADAPTER_ALLOW_CFG_REG		(USBIN_BASE + 0x60)
-enum {
-	USBIN_ADAPTER_ALLOW_5V		= 0,
-	USBIN_ADAPTER_ALLOW_9V		= 2,
-	USBIN_ADAPTER_ALLOW_5V_OR_9V	= 3,
-	USBIN_ADAPTER_ALLOW_12V		= 4,
-	USBIN_ADAPTER_ALLOW_5V_OR_12V	= 5,
-	USBIN_ADAPTER_ALLOW_9V_TO_12V	= 6,
-	USBIN_ADAPTER_ALLOW_5V_OR_9V_TO_12V = 7,
-	USBIN_ADAPTER_ALLOW_5V_TO_9V	= 8,
-	USBIN_ADAPTER_ALLOW_5V_TO_12V	= 12,
 };
 
 #define USBIN_OPTIONS_1_CFG_REG			(USBIN_BASE + 0x62)
@@ -313,9 +342,28 @@ enum {
 
 #define USBIN_AICL_OPTIONS_CFG_REG		(USBIN_BASE + 0x80)
 #define SUSPEND_ON_COLLAPSE_USBIN_BIT		BIT(7)
+#ifdef VENDOR_EDIT
+#ifdef CONFIG_OPPO_SM6250_CHARGER
+/* Yichun.Chen  PSW.BSP.CHG  2019-04-08  for charge */
+#define USBIN_AICL_HDC_EN_BIT			BIT(6)
+#define USBIN_AICL_START_AT_MAX_BIT		BIT(5)
+#endif
+#endif
+
 #define USBIN_AICL_PERIODIC_RERUN_EN_BIT	BIT(4)
 #define USBIN_AICL_ADC_EN_BIT			BIT(3)
 #define USBIN_AICL_EN_BIT			BIT(2)
+#ifdef VENDOR_EDIT
+#ifdef CONFIG_OPPO_SM6250_CHARGER
+/* Yichun.Chen  PSW.BSP.CHG  2019-04-08  for charge */
+#define USBIN_HV_COLLAPSE_RESPONSE_BIT		BIT(1)
+#define USBIN_LV_COLLAPSE_RESPONSE_BIT		BIT(0)
+
+/* tongfeng.Huang@BSP.CHG.Basic, 2018/12/12,  Add for charger */
+#define TYPE_C_CFG_REG				(USBIN_BASE + 0x58)
+#define APSD_START_ON_CC_BIT			BIT(7)
+#endif
+#endif
 
 #define USB_ENG_SSUPPLY_USB2_REG		(USBIN_BASE + 0xC0)
 #define ENG_SSUPPLY_12V_OV_OPT_BIT		BIT(1)
@@ -345,7 +393,10 @@ enum {
  *  TYPEC Peripheral Registers  *
  ********************************/
 #define TYPE_C_SNK_STATUS_REG			(TYPEC_BASE + 0x06)
-#define DETECTED_SRC_TYPE_MASK			GENMASK(3, 0)
+#define DETECTED_SRC_TYPE_MASK			GENMASK(6, 0)
+#define SNK_DAM_500MA_BIT			BIT(6)
+#define SNK_DAM_1500MA_BIT			BIT(5)
+#define SNK_DAM_3000MA_BIT			BIT(4)
 #define SNK_RP_STD_BIT				BIT(3)
 #define SNK_RP_1P5_BIT				BIT(2)
 #define SNK_RP_3P0_BIT				BIT(1)
@@ -401,6 +452,13 @@ enum {
 #define TYPEC_CCOUT_BUFFER_EN_BIT		BIT(2)
 #define TYPEC_CCOUT_VALUE_BIT			BIT(1)
 #define TYPEC_CCOUT_SRC_BIT			BIT(0)
+
+#ifdef VENDOR_EDIT
+#ifdef CONFIG_OPPO_SM6250_CHARGER
+/* Yichun.Chen  PSW.BSP.CHG  2019-06-20  for huawei nonstandard typec cable */
+#define DEBUG_ACCESS_SNK_CFG_REG		(TYPEC_BASE + 0x4A)
+#endif
+#endif
 
 #define DEBUG_ACCESS_SRC_CFG_REG		(TYPEC_BASE + 0x4C)
 #define EN_UNORIENTED_DEBUG_ACCESS_SRC_BIT	BIT(0)
@@ -505,6 +563,12 @@ enum {
 #define AICL_CMD_REG				(MISC_BASE + 0x44)
 #define RESTART_AICL_BIT			BIT(1)
 #define RERUN_AICL_BIT				BIT(0)
+#ifdef VENDOR_EDIT
+#ifdef CONFIG_OPPO_SM6250_CHARGER
+/* tongfeng.Huang@BSP.CHG.Basic, 2018/09/27,  Add for charger */
+#define RESTART_AICL_BIT            BIT(1)
+#endif
+#endif
 
 #define MISC_SMB_EN_CMD_REG			(MISC_BASE + 0x48)
 #define SMB_EN_OVERRIDE_VALUE_BIT		BIT(4)

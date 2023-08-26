@@ -69,6 +69,7 @@ enum kgsl_event_results {
 };
 
 #define KGSL_FLAG_WAKE_ON_TOUCH BIT(0)
+#define KGSL_FLAG_SPARSE        BIT(1)
 
 /*
  * "list" of event types for ftrace symbolic magic
@@ -340,6 +341,10 @@ struct kgsl_device {
 	unsigned int num_l3_pwrlevels;
 	/* store current L3 vote to determine if we should change our vote */
 	unsigned int cur_l3_pwrlevel;
+#ifdef VENDOR_EDIT
+//wenhua.Leng@PSW.MM.Display.GPU.minidump,2019-04-21
+	bool snapshot_control;
+#endif /*VENDOR_EDIT*/
 };
 
 #define KGSL_MMU_DEVICE(_mmu) \
@@ -545,6 +550,10 @@ struct kgsl_snapshot {
 	bool first_read;
 	bool gmu_fault;
 	bool recovered;
+#ifdef VENDOR_EDIT
+//wenhua.Leng@PSW.MM.Display.GPU.minidump,2019-04-21
+	uint32_t snapshot_hashid;
+#endif /*VENDOR_EDIT*/	
 };
 
 /**

@@ -74,6 +74,8 @@ static DEFINE_IDA(gsi_ida);
 static void gsi_rndis_ipa_reset_trigger(struct gsi_data_port *d_port);
 static void ipa_disconnect_handler(struct gsi_data_port *d_port);
 static int gsi_ctrl_send_notification(struct f_gsi *gsi);
+static int gsi_alloc_trb_buffer(struct f_gsi *gsi);
+static void gsi_free_trb_buffer(struct f_gsi *gsi);
 static struct gsi_ctrl_pkt *gsi_ctrl_pkt_alloc(unsigned int len, gfp_t flags);
 static void gsi_ctrl_pkt_free(struct gsi_ctrl_pkt *pkt);
 
@@ -92,7 +94,8 @@ static inline bool usb_gsi_remote_wakeup_allowed(struct usb_function *f)
 	struct f_gsi *gsi = func_to_gsi(f);
 
 	if (f->config->cdev->gadget->speed >= USB_SPEED_SUPER)
-		remote_wakeup_allowed = f->func_wakeup_allowed;
+		remote_wakeup_allowed =
+			 f->func_is_suspended ? f->func_wakeup_allowed : false;
 	else
 		remote_wakeup_allowed = f->config->cdev->gadget->remote_wakeup;
 
@@ -269,21 +272,15 @@ static void gsi_rw_timer_func(unsigned long arg)
 static struct f_gsi *get_connected_gsi(void)
 {
 	struct f_gsi *connected_gsi;
-	bool gsi_connected = false;
 	int i;
 
-	for (i = 0; i < IPA_USB_MAX_TETH_PROT_SIZE; i++) {
+	for (i = 0; i < USB_PROT_MAX; i++) {
 		connected_gsi = __gsi[i];
-		if (connected_gsi && atomic_read(&connected_gsi->connected)) {
-			gsi_connected = true;
-			break;
-		}
+		if (connected_gsi && atomic_read(&connected_gsi->connected))
+			return connected_gsi;
 	}
 
-	if (!gsi_connected)
-		connected_gsi = NULL;
-
-	return connected_gsi;
+	return NULL;
 }
 
 #define DEFAULT_RW_TIMER_INTERVAL 500 /* in ms */
@@ -291,43 +288,50 @@ static ssize_t usb_gsi_rw_write(struct file *file,
 			const char __user *ubuf, size_t count, loff_t *ppos)
 {
 	struct f_gsi *gsi;
+	struct usb_function *func;
+	struct usb_gadget *gadget;
 	u8 input;
+	int i;
 	int ret;
 
-	gsi = get_connected_gsi();
-	if (!gsi) {
-		log_event_dbg("%s: gsi not connected\n", __func__);
-		goto err;
-	}
-
 	if (ubuf == NULL) {
-		log_event_dbg("%s: buffer is Null.\n", __func__);
+		pr_debug("%s: buffer is Null.\n", __func__);
 		goto err;
 	}
 
 	ret = kstrtou8_from_user(ubuf, count, 0, &input);
 	if (ret) {
-		log_event_err("%s: Invalid value. err:%d\n", __func__, ret);
+		pr_err("%s: Invalid value. err:%d\n", __func__, ret);
 		goto err;
 	}
 
-	if (gsi->debugfs_rw_timer_enable == !!input) {
-		if (!!input)
-			log_event_dbg("%s: RW already enabled\n", __func__);
-		else
-			log_event_dbg("%s: RW already disabled\n", __func__);
-		goto err;
-	}
 
-	gsi->debugfs_rw_timer_enable = !!input;
+	for (i = 0; i < USB_PROT_MAX; i++) {
+		gsi = __gsi[i];
+		if (gsi && atomic_read(&gsi->connected)) {
+			func = &gsi->function;
+			gadget = func->config->cdev->gadget;
+			gsi->debugfs_rw_timer_enable = !!input;
+			if (gadget->speed >= USB_SPEED_SUPER &&
+					!func->func_is_suspended) {
+				gsi->debugfs_rw_timer_enable = 0;
+				del_timer_sync(&gsi->gsi_rw_timer);
+				continue;
+			}
 
-	if (gsi->debugfs_rw_timer_enable) {
-		mod_timer(&gsi->gsi_rw_timer, jiffies +
-			  msecs_to_jiffies(gsi->gsi_rw_timer_interval));
-		log_event_dbg("%s: timer initialized\n", __func__);
-	} else {
-		del_timer_sync(&gsi->gsi_rw_timer);
-		log_event_dbg("%s: timer deleted\n", __func__);
+			if (gsi->debugfs_rw_timer_enable) {
+				mod_timer(&gsi->gsi_rw_timer, jiffies +
+				  msecs_to_jiffies(gsi->gsi_rw_timer_interval));
+				log_event_dbg("%s: timer initialized\n",
+								__func__);
+			} else {
+				del_timer_sync(&gsi->gsi_rw_timer);
+				log_event_dbg("%s: timer deleted\n", __func__);
+			}
+
+			if (gadget->speed < USB_SPEED_SUPER)
+				break;
+		}
 	}
 
 err:
@@ -338,14 +342,16 @@ static int usb_gsi_rw_show(struct seq_file *s, void *unused)
 {
 
 	struct f_gsi *gsi;
+	int i;
+	u8 enable = 0;
 
-	gsi = get_connected_gsi();
-	if (!gsi) {
-		log_event_dbg("%s: gsi not connected\n", __func__);
-		return 0;
+	for (i = 0; i < USB_PROT_MAX; i++) {
+		gsi = __gsi[i];
+		if (gsi && atomic_read(&gsi->connected))
+			enable |= gsi->debugfs_rw_timer_enable;
 	}
 
-	seq_printf(s, "%d\n", gsi->debugfs_rw_timer_enable);
+	seq_printf(s, "%d\n", enable);
 
 	return 0;
 }
@@ -369,31 +375,31 @@ static ssize_t usb_gsi_rw_timer_write(struct file *file,
 {
 	struct f_gsi *gsi;
 	u16 timer_val;
+	int i;
 	int ret;
 
-	gsi = get_connected_gsi();
-	if (!gsi) {
-		log_event_dbg("%s: gsi not connected\n", __func__);
-		goto err;
-	}
-
 	if (ubuf == NULL) {
-		log_event_dbg("%s: buffer is NULL.\n", __func__);
+		pr_debug("%s: buffer is NULL.\n", __func__);
 		goto err;
 	}
 
 	ret = kstrtou16_from_user(ubuf, count, 0, &timer_val);
 	if (ret) {
-		log_event_err("%s: Invalid value. err:%d\n", __func__, ret);
+		pr_err("%s: Invalid value. err:%d\n", __func__, ret);
 		goto err;
 	}
 
 	if (timer_val <= 0 || timer_val >  10000) {
-		log_event_err("%s: value must be > 0 and < 10000.\n", __func__);
+		pr_err("%s: value must be > 0 and < 10000.\n", __func__);
 		goto err;
 	}
 
-	gsi->gsi_rw_timer_interval = timer_val;
+	for (i = 0; i < USB_PROT_MAX; i++) {
+		gsi = __gsi[i];
+		if (gsi && atomic_read(&gsi->connected))
+			gsi->gsi_rw_timer_interval = timer_val;
+	}
+
 err:
 	return count;
 }
@@ -839,6 +845,9 @@ static void ipa_disconnect_work_handler(struct gsi_data_port *d_port)
 	if (gsi->d_port.out_ep)
 		usb_gsi_ep_op(gsi->d_port.out_ep, &gsi->d_port.out_request,
 							GSI_EP_OP_FREE_TRBS);
+
+	/* free buffers allocated with each TRB */
+	gsi_free_trb_buffer(gsi);
 }
 
 static int ipa_suspend_work_handler(struct gsi_data_port *d_port)
@@ -946,7 +955,14 @@ static void ipa_work_handler(struct work_struct *w)
 			usb_gadget_autopm_get(d_port->gadget);
 			log_event_dbg("%s: get = %d", __func__,
 				atomic_read(&gad_dev->power.usage_count));
-
+			/* allocate buffers used with each TRB */
+			ret = gsi_alloc_trb_buffer(gsi);
+			if (ret) {
+				log_event_err("%s: gsi_alloc_trb_failed\n",
+								__func__);
+				usb_gadget_autopm_put_async(d_port->gadget);
+				break;
+			}
 			d_port->sm_state = STATE_CONNECT_IN_PROGRESS;
 			log_event_dbg("%s: ST_INIT_EVT_CONN_IN_PROG",
 					__func__);
@@ -955,6 +971,7 @@ static void ipa_work_handler(struct work_struct *w)
 				if (ret) {
 					log_event_err("%s: ipa_connect_channels failed\n",
 								__func__);
+					gsi_free_trb_buffer(gsi);
 					usb_gadget_autopm_put_async(
 								d_port->gadget);
 					d_port->sm_state = STATE_INITIALIZED;
@@ -976,10 +993,19 @@ static void ipa_work_handler(struct work_struct *w)
 			usb_gadget_autopm_get(d_port->gadget);
 			log_event_dbg("%s: get = %d", __func__,
 				atomic_read(&gad_dev->power.usage_count));
+						/* allocate buffers used with each TRB */
+			ret = gsi_alloc_trb_buffer(gsi);
+			if (ret) {
+				log_event_err("%s: gsi_alloc_trb_failed\n",
+								__func__);
+				usb_gadget_autopm_put_async(d_port->gadget);
+				break;
+			}
 			ret = ipa_connect_channels(d_port);
 			if (ret) {
 				log_event_err("%s: ipa_connect_channels failed\n",
 							__func__);
+				gsi_free_trb_buffer(gsi);
 				usb_gadget_autopm_put_async(d_port->gadget);
 				break;
 			}
@@ -2315,6 +2341,106 @@ static int gsi_get_alt(struct usb_function *f, unsigned int intf)
 		return gsi->data_interface_up;
 
 	return -EINVAL;
+}
+
+static int gsi_alloc_trb_buffer(struct f_gsi *gsi)
+{
+	u32 len_in = 0, len_out = 0;
+	int ret = 0;
+	struct device *dev;
+
+	log_event_dbg("allocate trb's buffer\n");
+
+	dev = gsi->d_port.gadget->dev.parent;
+	if (gsi->d_port.in_ep && !gsi->d_port.in_request.buf_base_addr) {
+		log_event_dbg("IN: num_bufs:=%zu, buf_len=%zu\n",
+			gsi->d_port.in_request.num_bufs,
+			gsi->d_port.in_request.buf_len);
+
+		len_in = gsi->d_port.in_request.buf_len *
+				gsi->d_port.in_request.num_bufs;
+		gsi->d_port.in_request.buf_base_addr =
+			dma_zalloc_coherent(dev->parent,
+			len_in, &gsi->d_port.in_request.dma, GFP_KERNEL);
+		if (!gsi->d_port.in_request.buf_base_addr) {
+			dev_err(&gsi->d_port.gadget->dev,
+					"IN buf_base_addr allocate failed %s\n",
+					gsi->function.name);
+			ret = -ENOMEM;
+			goto fail1;
+		}
+
+		dma_get_sgtable(dev->parent,
+			&gsi->d_port.in_request.sgt_data_buff,
+			gsi->d_port.in_request.buf_base_addr,
+			gsi->d_port.in_request.dma, len_in);
+	}
+
+	if (gsi->d_port.out_ep && !gsi->d_port.out_request.buf_base_addr) {
+		log_event_dbg("OUT: num_bufs:=%zu, buf_len=%zu\n",
+			gsi->d_port.out_request.num_bufs,
+			gsi->d_port.out_request.buf_len);
+
+		len_out = gsi->d_port.out_request.buf_len *
+				gsi->d_port.out_request.num_bufs;
+		gsi->d_port.out_request.buf_base_addr =
+			dma_zalloc_coherent(dev->parent,
+			len_out, &gsi->d_port.out_request.dma, GFP_KERNEL);
+		if (!gsi->d_port.out_request.buf_base_addr) {
+			dev_err(&gsi->d_port.gadget->dev,
+					"OUT buf_base_addr allocate failed %s\n",
+					gsi->function.name);
+			ret = -ENOMEM;
+			goto fail;
+		}
+
+		dma_get_sgtable(dev->parent,
+			&gsi->d_port.out_request.sgt_data_buff,
+			gsi->d_port.out_request.buf_base_addr,
+			gsi->d_port.out_request.dma, len_out);
+	}
+
+	log_event_dbg("finished allocating trb's buffer\n");
+	return ret;
+
+fail:
+	if (len_in && gsi->d_port.in_request.buf_base_addr) {
+		dma_free_coherent(dev->parent, len_in,
+				gsi->d_port.in_request.buf_base_addr,
+				gsi->d_port.in_request.dma);
+		gsi->d_port.in_request.buf_base_addr = NULL;
+	}
+fail1:
+	return ret;
+}
+
+static void gsi_free_trb_buffer(struct f_gsi *gsi)
+{
+	u32 len;
+
+	log_event_dbg("freeing trb's buffer\n");
+
+	if (gsi->d_port.out_ep &&
+			gsi->d_port.out_request.buf_base_addr) {
+		len = gsi->d_port.out_request.buf_len *
+			gsi->d_port.out_request.num_bufs;
+		dma_free_coherent(gsi->d_port.gadget->dev.parent->parent, len,
+			gsi->d_port.out_request.buf_base_addr,
+			gsi->d_port.out_request.dma);
+		gsi->d_port.out_request.buf_base_addr = NULL;
+		sg_free_table(&gsi->d_port.out_request.sgt_data_buff);
+	}
+
+	if (gsi->d_port.in_ep &&
+			gsi->d_port.in_request.buf_base_addr) {
+		len = gsi->d_port.in_request.buf_len *
+			gsi->d_port.in_request.num_bufs;
+		dma_free_coherent(gsi->d_port.gadget->dev.parent->parent, len,
+			gsi->d_port.in_request.buf_base_addr,
+			gsi->d_port.in_request.dma);
+		gsi->d_port.in_request.buf_base_addr = NULL;
+		sg_free_table(&gsi->d_port.in_request.sgt_data_buff);
+	}
 }
 
 static int gsi_set_alt(struct usb_function *f, unsigned int intf,

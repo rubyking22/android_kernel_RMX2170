@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2019, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -79,6 +79,11 @@
 		qcom,msm-dai-q6-dev-id = <8>;
 	};
 
+	dai_hdmi_ms: qcom,msm-dai-q6-hdmi_ms {
+		compatible = "qcom,msm-dai-q6-hdmi";
+		qcom,msm-dai-q6-dev-id = <24578>;
+	};
+
 	dai_dp: qcom,msm-dai-q6-dp {
 		compatible = "qcom,msm-dai-q6-hdmi";
 		qcom,msm-dai-q6-dev-id = <24608>;
@@ -130,8 +135,16 @@
 		dai_mi2s4: qcom,msm-dai-q6-mi2s-quin {
 			compatible = "qcom,msm-dai-q6-mi2s";
 			qcom,msm-dai-q6-mi2s-dev-id = <4>;
+			/*#ifdef ODM_LQ_EDIT*/
+			/*shentaotao@ODM_LQ@Multimedia.Audio,2019/10/08,modified for audio bringup*/
+			qcom,msm-mi2s-rx-lines = <2>;
+			qcom,msm-mi2s-tx-lines = <1>;
+			/*
+			#else
 			qcom,msm-mi2s-rx-lines = <1>;
 			qcom,msm-mi2s-tx-lines = <2>;
+			*/
+			/*#endif ODM_LQ_EDIT*/
 		};
 
 		dai_mi2s5: qcom,msm-dai-q6-mi2s-senary {
@@ -434,6 +447,16 @@
 		incall_music_2_rx: qcom,msm-dai-q6-incall-music-2-rx {
 			compatible = "qcom,msm-dai-q6-dev";
 			qcom,msm-dai-q6-dev-id = <32770>;
+		};
+
+		proxy_rx: qcom,msm-dai-q6-proxy-rx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <8194>;
+		};
+
+		proxy_tx: qcom,msm-dai-q6-proxy-tx {
+			compatible = "qcom,msm-dai-q6-dev";
+			qcom,msm-dai-q6-dev-id = <8195>;
 		};
 
 		usb_audio_rx: qcom,msm-dai-q6-usb-audio-rx {
@@ -809,5 +832,9 @@
 	afe_loopback_tx: qcom,msm-dai-q6-afe-loopback-tx {
 		compatible = "qcom,msm-dai-q6-dev";
 		qcom,msm-dai-q6-dev-id = <24577>;
+	};
+
+	pcie: qcom,msm-pcm-pcie {
+		compatible = "qcom,msm-pcm-pcie";
 	};
 };

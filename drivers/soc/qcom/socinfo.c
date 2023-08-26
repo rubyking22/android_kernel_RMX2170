@@ -399,8 +399,13 @@ static struct msm_soc_info cpu_of_id[] = {
 	[418] = {SDX_CPU_SDXPRAIRIE, "SDXPRAIRIE"},
 
 	/* sdmmagpie ID */
-	[365] = {MSM_CPU_SDMMAGPIE, "SDMMAGPIE"},
-
+#if defined(VENDOR_EDIT) && defined(CONFIG_CONFIDENTIAL_EUCLID_VERSION)
+/*xing.xing@BSP.Kernel.Driver, 2019/04/19, Add for confidential version*/
+	[365] = {MSM_CPU_SDMMAGPIE, "SDM710"},
+#else
+	/* sdmmagpie ID */
+	[365] = {MSM_CPU_SDMMAGPIE, "SDM720"},
+#endif
 	/* sdmmagpiep ID */
 	[366] = {MSM_CPU_SDMMAGPIEP, "SDMMAGPIEP"},
 
@@ -423,7 +428,23 @@ static struct msm_soc_info cpu_of_id[] = {
 	[406] = {MSM_CPU_QCS410, "QCS410"},
 
 	/* atoll ID */
+#if defined(ODM_LQ_EDIT) && defined(CONFIG_CONFIDENTIAL_EUCLID_VERSION)
+/*chenhongbin@ODM_LQ@BSP.cpuinfo,2019/12/02,modified for cpuinfo */
 	[407] = {MSM_CPU_ATOLL, "ATOLL"},
+#else
+	[407] = {MSM_CPU_ATOLL, "SDM720G"},
+#endif
+
+	/* atollp ID */
+	[424] = {MSM_CPU_ATOLLP, "ATOLLP"},
+
+	/* atollab ID */
+#if defined(ODM_LQ_EDIT) && defined(CONFIG_CONFIDENTIAL_EUCLID_VERSION)
+/*chenhongbin@ODM_LQ@BSP.cpuinfo,2019/12/02,modified for cpuinfo */
+	[443] = {MSM_CPU_ATOLL_AB, "ATOLL-AB"},
+#else
+	[443] = {MSM_CPU_ATOLL_AB, "SDM720G"},
+#endif
 
 	/* Uninitialized IDs are not known to run Linux.
 	 * MSM_CPU_UNKNOWN is set to 0 to ensure these IDs are
@@ -1408,6 +1429,14 @@ static void * __init setup_dummy_socinfo(void)
 	} else if (early_machine_is_atoll()) {
 		dummy_socinfo.id = 407;
 		strlcpy(dummy_socinfo.build_id, "atoll - ",
+		sizeof(dummy_socinfo.build_id));
+	} else if (early_machine_is_atollp()) {
+		dummy_socinfo.id = 424;
+		strlcpy(dummy_socinfo.build_id, "atollp - ",
+		sizeof(dummy_socinfo.build_id));
+	} else if (early_machine_is_atoll_ab()) {
+		dummy_socinfo.id = 443;
+		strlcpy(dummy_socinfo.build_id, "atoll-ab - ",
 		sizeof(dummy_socinfo.build_id));
 	} else
 		strlcat(dummy_socinfo.build_id, "Dummy socinfo",

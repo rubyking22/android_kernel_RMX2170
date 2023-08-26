@@ -43,6 +43,12 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/trace_msm_pil_event.h>
 
+#ifdef VENDOR_EDIT
+//GaoTing.Gan@PSW.MultiMedia.MediaServer, 2019/03/06, Add for record vnus ramdump
+#include <soc/oppo/oppo_kevent_feedback.h>
+#include <soc/oppo/boot_mode.h>
+#endif /* VENDOR_EDIT */
+
 #include "peripheral-loader.h"
 
 #define pil_err(desc, fmt, ...)						\
@@ -60,8 +66,19 @@
 #define MAX_LEN 96
 #define NUM_OF_ENCRYPTED_KEY	3
 
+#define pil_log(msg, desc)	\
+	do {			\
+		if (pil_ipc_log)		\
+			pil_ipc("[%s]: %s", desc->name, msg); \
+		else		\
+			trace_pil_event(msg, desc);	\
+	} while (0)
+
+
 static void __iomem *pil_info_base;
 static struct md_global_toc *g_md_toc;
+
+void *pil_ipc_log;
 
 /**
  * proxy_timeout - Override for proxy vote timeouts
@@ -386,7 +403,11 @@ static int pil_do_minidump(struct pil_desc *desc, void *ramdump_dev)
 					      &ss_valid_seg_cnt,
 					      desc->num_aux_minidump_ids);
 
-	ret = do_minidump(ramdump_dev, ramdump_segs, ss_valid_seg_cnt);
+	if (desc->minidump_as_elf32)
+		ret = do_elf_ramdump(ramdump_dev, ramdump_segs,
+				     ss_valid_seg_cnt);
+	else
+		ret = do_minidump(ramdump_dev, ramdump_segs, ss_valid_seg_cnt);
 	if (ret)
 		pil_err(desc, "%s: Minidump collection failed for subsys %s rc:%d\n",
 			__func__, desc->name, ret);
@@ -432,6 +453,29 @@ static void print_aux_minidump_tocs(struct pil_desc *desc)
 	}
 }
 
+#ifdef VENDOR_EDIT
+//GaoTing.Gan@PSW.MultiMedia.MediaServer, 2019/03/06, Add for record ramdump
+//Wentiam.Mai@PSW.NW.EM.1213568, 2018/05/09
+//Add for customized subsystem ramdump
+#define CAUSENAME_SIZE 128
+unsigned int BKDRHash(char* str, unsigned int len)
+{
+    unsigned int seed = 131; /* 31 131 1313 13131 131313 etc.. */
+    unsigned int hash = 0;
+    unsigned int i    = 0;
+
+    if (str == NULL) {
+        return 0;
+    }
+
+    for(i = 0; i < len; str++, i++) {
+        hash = (hash * seed) + (*str);
+    }
+
+    return hash;
+}
+#endif /*VENDOR_EDIT*/
+
 /**
  * pil_do_ramdump() - Ramdump an image
  * @desc: descriptor from pil_desc_init()
@@ -448,7 +492,24 @@ int pil_do_ramdump(struct pil_desc *desc,
 	struct pil_seg *seg;
 	int count = 0, ret;
 
+#ifdef VENDOR_EDIT
+//GaoTing.Gan@PSW.MultiMedia.MediaServer, 2019/03/06, Add for record ramdump
+	unsigned char payload[100] = "";
+	unsigned int hashid;
+	char strHashSource[CAUSENAME_SIZE];
+#endif /*VENDOR_EDIT*/
+
 	if (desc->minidump_ss) {
+#ifdef VENDOR_EDIT
+	//Wentiam.Mai@PSW.NW.EM.1248599, 2018/01/25
+	//Add for customized subsystem ramdump to skip generate dump cause by SAU
+	if (SKIP_GENERATE_RAMDUMP) {
+		pil_err(desc, "%s: Skip ramdump cuase by ap normal trigger.\n %s",
+			__func__, desc->name);
+		SKIP_GENERATE_RAMDUMP = false;
+		return -1;
+	}
+#endif
 		pr_debug("Minidump : md_ss_toc->md_ss_toc_init is 0x%x\n",
 			(unsigned int)desc->minidump_ss->md_ss_toc_init);
 		pr_debug("Minidump : md_ss_toc->md_ss_enable_status is 0x%x\n",
@@ -471,12 +532,20 @@ int pil_do_ramdump(struct pil_desc *desc,
 			(desc->minidump_ss->md_ss_toc_init == true) &&
 			(desc->minidump_ss->md_ss_enable_status ==
 				MD_SS_ENABLED)) {
+			#ifndef VENDOR_EDIT
+			//Wentiam.Mai@PSW.NW.EM.1389836, 2018/05/22
+			//Add for skip mini dump encryption
 			if (desc->minidump_ss->encryption_status ==
 			    MD_SS_ENCR_DONE) {
 				pr_debug("Dumping Minidump for %s\n",
 					desc->name);
 				return pil_do_minidump(desc, minidump_dev);
 			}
+			#else
+				pr_info("Minidump : Dumping for %s\n",
+					desc->name);
+				return pil_do_minidump(desc, minidump_dev);
+			#endif
 			pr_debug("Minidump aborted for %s\n", desc->name);
 			return -EINVAL;
 		}
@@ -506,6 +575,21 @@ int pil_do_ramdump(struct pil_desc *desc,
 	if (ret)
 		pil_err(desc, "%s: Ramdump collection failed for subsys %s rc:%d\n",
 				__func__, desc->name, ret);
+
+#ifdef VENDOR_EDIT
+//GaoTing.Gan@PSW.MultiMedia.MediaServer, 2019/03/06, Add for record ramdump
+	if(strlen(desc->name) > 0 && (strncmp(desc->name,"venus",strlen(desc->name)) == 0)) {
+	    strncpy(strHashSource,desc->name,strlen(desc->name));
+	    hashid = BKDRHash(strHashSource,strlen(strHashSource));
+	    scnprintf(payload, sizeof(payload), "NULL$$EventID@@%d$$EventData@@%d$$PackageName@@%s$$fid@@%u",OPPO_MM_DIRVER_FB_EVENT_ID_VIDEO_DUMP, ret, desc->name, hashid);
+	    upload_mm_kevent_feedback_data(OPPO_MM_DIRVER_FB_EVENT_MODULE_VIDEO,payload);
+	} else if(strlen(desc->name) > 0 && (strncmp(desc->name,"adsp",strlen(desc->name)) == 0)) {
+	    strncpy(strHashSource,desc->name,strlen(desc->name));
+	    hashid = BKDRHash(strHashSource,strlen(strHashSource));
+	    scnprintf(payload, sizeof(payload), "NULL$$EventID@@%d$$EventData@@%d$$PackageName@@%s$$fid@@%u",OPPO_MM_DIRVER_FB_EVENT_ID_ADSP_RESET, ret, desc->name, hashid);
+	    upload_mm_kevent_feedback_data(OPPO_MM_DIRVER_FB_EVENT_MODULE_AUDIO,payload);
+	}
+#endif /* VENDOR_EDIT */
 
 	if (desc->subsys_vmid > 0)
 		ret = pil_assign_mem_to_subsys(desc, priv->region_start,
@@ -1278,7 +1362,7 @@ int pil_boot(struct pil_desc *desc)
 		goto release_fw;
 	}
 
-	trace_pil_event("before_init_image", desc);
+	pil_log("before_init_image", desc);
 	if (desc->ops->init_image)
 		ret = desc->ops->init_image(desc, fw->data, fw->size);
 	if (ret) {
@@ -1286,7 +1370,7 @@ int pil_boot(struct pil_desc *desc)
 		goto err_boot;
 	}
 
-	trace_pil_event("before_mem_setup", desc);
+	pil_log("before_mem_setup", desc);
 	if (desc->ops->mem_setup)
 		ret = desc->ops->mem_setup(desc, priv->region_start,
 				priv->region_end - priv->region_start);
@@ -1302,7 +1386,7 @@ int pil_boot(struct pil_desc *desc)
 		 * Also for secure boot devices, modem memory has to be released
 		 * after MBA is booted
 		 */
-		trace_pil_event("before_assign_mem", desc);
+		pil_log("before_assign_mem", desc);
 		if (desc->modem_ssr) {
 			ret = pil_assign_mem_to_linux(desc, priv->region_start,
 				(priv->region_end - priv->region_start));
@@ -1321,7 +1405,7 @@ int pil_boot(struct pil_desc *desc)
 		hyp_assign = true;
 	}
 
-	trace_pil_event("before_load_seg", desc);
+	pil_log("before_load_seg", desc);
 
 	/**
 	 * Fallback to serial loading of blobs if the
@@ -1340,7 +1424,7 @@ int pil_boot(struct pil_desc *desc)
 	}
 
 	if (desc->subsys_vmid > 0) {
-		trace_pil_event("before_reclaim_mem", desc);
+		pil_log("before_reclaim_mem", desc);
 		ret =  pil_reclaim_mem(desc, priv->region_start,
 				(priv->region_end - priv->region_start),
 				desc->subsys_vmid);
@@ -1352,13 +1436,18 @@ int pil_boot(struct pil_desc *desc)
 		hyp_assign = false;
 	}
 
-	trace_pil_event("before_auth_reset", desc);
+	pil_log("before_auth_reset", desc);
 	ret = desc->ops->auth_and_reset(desc);
 	if (ret) {
 		pil_err(desc, "Failed to bring out of reset(rc:%d)\n", ret);
+	#ifdef VENDOR_EDIT
+	/*xing.xiong@BSP.Kernel.Driver, 2019/08/29, Add for avoid */
+		if ((get_boot_mode() == MSM_BOOT_MODE__NORMAL) && (ret == -EBUSY))
+			panic("fatal load image");
+	#endif
 		goto err_auth_and_reset;
 	}
-	trace_pil_event("reset_done", desc);
+	pil_log("reset_done", desc);
 	pil_info(desc, "Brought out of reset\n");
 	desc->modem_ssr = false;
 err_auth_and_reset:
@@ -1593,6 +1682,9 @@ int pil_desc_init(struct pil_desc *desc)
 	if (!desc->unmap_fw_mem)
 		desc->unmap_fw_mem = unmap_fw_mem;
 
+	desc->minidump_as_elf32 = of_property_read_bool(
+					ofnode, "qcom,minidump-as-elf32");
+
 	return 0;
 err_parse_dt:
 	ida_simple_remove(&pil_ida, priv->id);
@@ -1680,6 +1772,9 @@ static int __init msm_pil_init(void)
 	if (!pil_wq)
 		pr_warn("pil: Defaulting to sequential firmware loading.\n");
 
+	pil_ipc_log = ipc_log_context_create(2, "PIL-IPC", 0);
+	if (!pil_ipc_log)
+		pr_warn("Failed to setup PIL ipc logging\n");
 out:
 	return register_pm_notifier(&pil_pm_notifier);
 }

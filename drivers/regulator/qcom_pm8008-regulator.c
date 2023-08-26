@@ -12,6 +12,7 @@
 
 #define pr_fmt(fmt) "PM8008: %s: " fmt, __func__
 
+#include <linux/delay.h>
 #include <linux/device.h>
 #include <linux/regmap.h>
 #include <linux/interrupt.h>
@@ -24,7 +25,8 @@
 #include <linux/regulator/machine.h>
 #include <linux/regulator/of_regulator.h>
 #include <linux/string.h>
-
+#include <soc/oppo/boot_mode.h>
+#include "../power/oppo/oppo_vooc.h"
 #define pm8008_err(reg, message, ...) \
 	pr_err("%s: " message, (reg)->rdesc.name, ##__VA_ARGS__)
 #define pm8008_debug(reg, message, ...) \
@@ -33,6 +35,7 @@
 #define STARTUP_DELAY_USEC		20
 #define VSET_STEP_SIZE_MV		1
 #define VSET_STEP_MV			8
+#define VSET_STEP_UV			(VSET_STEP_MV * 1000)
 
 #define MISC_BASE			0x900
 
@@ -67,7 +70,6 @@
 
 #define MAX_REG_NAME			20
 #define PM8008_MAX_LDO			7
-
 struct pm8008_chip {
 	struct device		*dev;
 	struct regmap		*regmap;
@@ -112,23 +114,81 @@ static struct regulator_data reg_data[] = {
 static int pm8008_read(struct regmap *regmap,  u16 reg, u8 *val, int count)
 {
 	int rc;
-
+#ifdef ODM_LQ_EDIT
+#ifndef ODM_TARGET_DEVICE_206B1
+	int i = 0;
+	if ((qpnp_is_power_off_charging() == true) && (charger_type_is_ocp() == true)) {
+			while (i < 200)
+			{
+				if (oppo_vooc_get_allow_reading() == false) {
+					i = i + 1;
+					msleep(50);
+				} else
+					break;
+			}
+	}
+#endif
+#endif
 	rc = regmap_bulk_read(regmap, reg, val, count);
-	if (rc < 0)
+	if (rc < 0){
 		pr_err("failed to read 0x%04x\n", reg);
-
+		msleep(20);
+		rc = regmap_bulk_read(regmap, reg, val, count);
+		if (rc < 0){
+			pr_err("failed to read 0x%04x try again1\n", reg);
+			msleep(20);
+			rc = regmap_bulk_read(regmap, reg, val, count);
+			if (rc < 0){
+				pr_err("failed to read 0x%04x try again2\n", reg);
+				msleep(20);
+				rc = regmap_bulk_read(regmap, reg, val, count);
+				if (rc < 0){
+					pr_err("failed to read 0x%04x try again3\n", reg);
+				}
+			}
+		}
+	}
 	return rc;
 }
 
 static int pm8008_write(struct regmap *regmap, u16 reg, u8 *val, int count)
 {
 	int rc;
-
+#ifdef ODM_LQ_EDIT
+#ifndef ODM_TARGET_DEVICE_206B1
+	int i = 0;
+	if ((qpnp_is_power_off_charging() == true) && (charger_type_is_ocp() == true)) {
+			while (i < 200)
+			{
+				if (oppo_vooc_get_allow_reading() == false) {
+					i = i + 1;
+					msleep(50);
+				} else
+					break;
+			}
+	}
+#endif
+#endif
 	pr_debug("Writing 0x%02x to 0x%04x\n", val, reg);
 	rc = regmap_bulk_write(regmap, reg, val, count);
-	if (rc < 0)
+	if (rc < 0){
 		pr_err("failed to write 0x%04x\n", reg);
-
+		msleep(20);
+		rc = regmap_bulk_write(regmap, reg, val, count);
+		if (rc < 0){
+			pr_err("failed to write 0x%04x try again1\n", reg);
+			msleep(20);
+			rc = regmap_bulk_write(regmap, reg, val, count);
+			if (rc < 0){
+				pr_err("failed to write 0x%04x try again2\n", reg);
+				msleep(20);
+				rc = regmap_bulk_write(regmap, reg, val, count);
+				if (rc < 0){
+					pr_err("failed to write 0x%04x try again3\n", reg);
+				}
+			}
+		}
+    }
 	return rc;
 }
 
@@ -136,13 +196,42 @@ static int pm8008_masked_write(struct regmap *regmap, u16 reg, u8 mask,
 				u8 val)
 {
 	int rc;
-
+#ifdef ODM_LQ_EDIT
+#ifndef ODM_TARGET_DEVICE_206B1
+	int i = 0;
+	if ((qpnp_is_power_off_charging() == true) && (charger_type_is_ocp() == true)) {
+			while (i < 200)
+			{
+				if (oppo_vooc_get_allow_reading() == false) {
+					i = i + 1;
+					msleep(50);
+				} else
+					break;
+			}
+	}
+#endif
+#endif
 	pr_debug("Writing 0x%02x to 0x%04x with mask 0x%02x\n", val, reg, mask);
 	rc = regmap_update_bits(regmap, reg, mask, val);
-	if (rc < 0)
+	if (rc < 0){
 		pr_err("failed to write 0x%02x to 0x%04x with mask 0x%02x\n",
 				val, reg, mask);
-
+		msleep(20);
+		rc = regmap_update_bits(regmap, reg, mask, val);
+		if (rc < 0){
+			pr_err("failed to write 0x%02x to 0x%04x with mask 0x%02x try again1\n",val, reg, mask);
+			msleep(20);
+			rc = regmap_update_bits(regmap, reg, mask, val);
+			if (rc < 0){
+				pr_err("failed to write 0x%02x to 0x%04x with mask 0x%02x try again2\n",val, reg, mask);
+				msleep(20);
+				rc = regmap_update_bits(regmap, reg, mask, val);
+				if (rc < 0){
+					pr_err("failed to write 0x%02x to 0x%04x with mask 0x%02x try again3\n",val, reg, mask);
+				}
+			}
+		}
+	}
 	return rc;
 }
 
@@ -186,8 +275,15 @@ static int pm8008_regulator_is_enabled(struct regulator_dev *rdev)
 static int pm8008_regulator_enable(struct regulator_dev *rdev)
 {
 	struct pm8008_regulator *pm8008_reg = rdev_get_drvdata(rdev);
-	int rc, init_mv, delay_us, delay_ms, retry_count = 10;
+	int rc, rc2, current_uv, delay_us, delay_ms, retry_count = 10;
 	u8 reg;
+
+	current_uv = pm8008_regulator_get_voltage(rdev);
+	if (current_uv < 0) {
+		pm8008_err(pm8008_reg, "failed to get current voltage rc=%d\n",
+			current_uv);
+		return current_uv;
+	}
 
 	rc = regulator_enable(pm8008_reg->en_supply);
 	if (rc < 0) {
@@ -197,12 +293,22 @@ static int pm8008_regulator_enable(struct regulator_dev *rdev)
 	}
 
 	if (pm8008_reg->parent_supply) {
+		rc = regulator_set_voltage(pm8008_reg->parent_supply,
+					current_uv + pm8008_reg->min_dropout_uv,
+					INT_MAX);
+		if (rc < 0) {
+			pm8008_err(pm8008_reg, "failed to request parent supply voltage rc=%d\n",
+				rc);
+			goto remove_en;
+		}
+
 		rc = regulator_enable(pm8008_reg->parent_supply);
 		if (rc < 0) {
 			pm8008_err(pm8008_reg,
 				"failed to enable parent rc=%d\n", rc);
-			regulator_disable(pm8008_reg->en_supply);
-			return rc;
+			regulator_set_voltage(pm8008_reg->parent_supply, 0,
+						INT_MAX);
+			goto remove_en;
 		}
 	}
 
@@ -216,20 +322,14 @@ static int pm8008_regulator_enable(struct regulator_dev *rdev)
 	}
 
 	/*
-	 * wait for VREG_OK
-	 * Read voltage and calculate the delay.
+	 * Wait for the VREG_READY status bit to be set using a timeout delay
+	 * calculated from the current commanded voltage.
 	 */
-	init_mv = pm8008_regulator_get_voltage(rdev) / 1000;
-	if (init_mv < 0) {
-		pm8008_err(pm8008_reg,
-			"failed to get regulator voltage rc=%d\n", rc);
-		goto out;
-	}
 	delay_us = STARTUP_DELAY_USEC
-			+ DIV_ROUND_UP(init_mv * 1000, pm8008_reg->step_rate);
+			+ DIV_ROUND_UP(current_uv, pm8008_reg->step_rate);
 	delay_ms = DIV_ROUND_UP(delay_us, 1000);
 
-	/* Retry 10 times for VREG_OK before bailing out */
+	/* Retry 10 times for VREG_READY before bailing out */
 	while (retry_count--) {
 		if (delay_ms > 20)
 			msleep(delay_ms);
@@ -241,7 +341,7 @@ static int pm8008_regulator_enable(struct regulator_dev *rdev)
 		if (rc < 0) {
 			pm8008_err(pm8008_reg,
 				"failed to read regulator status rc=%d\n", rc);
-			goto out;
+			goto disable_ldo;
 		}
 		if (reg & VREG_READY_BIT) {
 			pm8008_debug(pm8008_reg, "regulator enabled\n");
@@ -249,20 +349,33 @@ static int pm8008_regulator_enable(struct regulator_dev *rdev)
 		}
 	}
 
-	pm8008_err(pm8008_reg,
-		"failed to enable regulator VREG_READY not set\n");
-out:
+	pm8008_err(pm8008_reg, "failed to enable regulator, VREG_READY not set\n");
+	rc = -ETIME;
+
+disable_ldo:
 	pm8008_masked_write(pm8008_reg->regmap,
 			LDO_ENABLE_REG(pm8008_reg->base), ENABLE_BIT, 0);
-remove_vote:
-	rc = regulator_disable(pm8008_reg->en_supply);
-	if (pm8008_reg->parent_supply)
-		rc |= regulator_disable(pm8008_reg->parent_supply);
-	if (rc < 0)
-		pm8008_err(pm8008_reg,
-			"failed to disable parent regulator rc=%d\n", rc);
 
-	return -ETIME;
+remove_vote:
+	if (pm8008_reg->parent_supply) {
+		rc2 = regulator_disable(pm8008_reg->parent_supply);
+		if (rc2 < 0)
+			pm8008_err(pm8008_reg, "failed to disable parent supply rc=%d\n",
+				rc2);
+		rc2 = regulator_set_voltage(pm8008_reg->parent_supply, 0,
+						INT_MAX);
+		if (rc2 < 0)
+			pm8008_err(pm8008_reg, "failed to remove voltage vote for parent supply rc=%d\n",
+				rc2);
+	}
+
+remove_en:
+	rc2 = regulator_disable(pm8008_reg->en_supply);
+	if (rc2 < 0)
+		pm8008_err(pm8008_reg, "failed to disable en_supply rc=%d\n",
+			rc2);
+
+	return rc;
 }
 
 static int pm8008_regulator_disable(struct regulator_dev *rdev)
@@ -279,28 +392,29 @@ static int pm8008_regulator_disable(struct regulator_dev *rdev)
 		return rc;
 	}
 
-	/* remove vote from chip enable regulator */
-	rc = regulator_disable(pm8008_reg->en_supply);
-	if (rc < 0) {
-		pm8008_err(pm8008_reg,
-		       "failed to disable en_supply rc=%d\n", rc);
-	}
-
 	/* remove voltage vote from parent regulator */
 	if (pm8008_reg->parent_supply) {
+		rc = regulator_disable(pm8008_reg->parent_supply);
+		if (rc < 0) {
+			pm8008_err(pm8008_reg, "failed to disable parent rc=%d\n",
+				rc);
+			return rc;
+		}
 		rc = regulator_set_voltage(pm8008_reg->parent_supply,
 					0, INT_MAX);
 		if (rc < 0) {
-			pm8008_err(pm8008_reg,
-				"failed to remove parent voltage rc=%d\n", rc);
+			pm8008_err(pm8008_reg, "failed to remove parent voltage rc=%d\n",
+				rc);
 			return rc;
 		}
-		rc = regulator_disable(pm8008_reg->parent_supply);
-		if (rc < 0) {
-			pm8008_err(pm8008_reg,
-				"failed to disable parent rc=%d\n", rc);
-			return rc;
-		}
+	}
+
+	/* remove vote from chip enable regulator */
+	rc = regulator_disable(pm8008_reg->en_supply);
+	if (rc < 0) {
+		pm8008_err(pm8008_reg, "failed to disable en_supply rc=%d\n",
+			rc);
+		return rc;
 	}
 
 	pm8008_debug(pm8008_reg, "regulator disabled\n");
@@ -340,31 +454,76 @@ static int pm8008_write_voltage(struct pm8008_regulator *pm8008_reg, int min_uv,
 	return 0;
 }
 
+static int pm8008_regulator_set_voltage_time(struct regulator_dev *rdev,
+				int old_uV, int new_uv)
+{
+	struct pm8008_regulator *pm8008_reg = rdev_get_drvdata(rdev);
+
+	return DIV_ROUND_UP(abs(new_uv - old_uV), pm8008_reg->step_rate);
+}
+
 static int pm8008_regulator_set_voltage(struct regulator_dev *rdev,
 				int min_uv, int max_uv, unsigned int *selector)
 {
 	struct pm8008_regulator *pm8008_reg = rdev_get_drvdata(rdev);
-	int rc = 0;
+	int rc = 0, current_uv = 0, rounded_uv = 0, enabled = 0;
 
 	if (pm8008_reg->parent_supply) {
-		/* request on parent regulator with headroom */
+		enabled = pm8008_regulator_is_enabled(rdev);
+		if (enabled < 0) {
+			return enabled;
+		} else if (enabled) {
+			current_uv = pm8008_regulator_get_voltage(rdev);
+			if (current_uv < 0)
+				return current_uv;
+			rounded_uv = roundup(min_uv, VSET_STEP_UV);
+		}
+	}
+
+	/*
+	 * Set the parent_supply voltage before changing the LDO voltage when
+	 * the LDO voltage is being increased.
+	 */
+	if (pm8008_reg->parent_supply && enabled && rounded_uv >= current_uv) {
+		/* Request parent voltage with headroom */
 		rc = regulator_set_voltage(pm8008_reg->parent_supply,
-					pm8008_reg->min_dropout_uv + min_uv,
+					rounded_uv + pm8008_reg->min_dropout_uv,
 					INT_MAX);
 		if (rc < 0) {
-			pm8008_err(pm8008_reg,
-				"failed to request parent supply voltage rc=%d\n",
+			pm8008_err(pm8008_reg, "failed to request parent supply voltage rc=%d\n",
 				rc);
 			return rc;
 		}
 	}
 
 	rc = pm8008_write_voltage(pm8008_reg, min_uv, max_uv);
-	if (rc < 0) {
-		/* remove parent's voltage vote */
-		if (pm8008_reg->parent_supply)
-			regulator_set_voltage(pm8008_reg->parent_supply,
-						0, INT_MAX);
+	if (rc < 0)
+		return rc;
+
+	/*
+	 * Set the parent_supply voltage after changing the LDO voltage when
+	 * the LDO voltage is being reduced.
+	 */
+	if (pm8008_reg->parent_supply && enabled && rounded_uv < current_uv) {
+		/*
+		 * Ensure sufficient time for the LDO voltage to slew down
+		 * before reducing the parent supply voltage.  The regulator
+		 * framework will add the same delay after this function returns
+		 * in all cases (i.e. enabled/disabled and increasing/decreasing
+		 * voltage).
+		 */
+		udelay(pm8008_regulator_set_voltage_time(rdev, rounded_uv,
+							current_uv));
+
+		/* Request parent voltage with headroom */
+		rc = regulator_set_voltage(pm8008_reg->parent_supply,
+					rounded_uv + pm8008_reg->min_dropout_uv,
+					INT_MAX);
+		if (rc < 0) {
+			pm8008_err(pm8008_reg, "failed to request parent supply voltage rc=%d\n",
+				rc);
+			return rc;
+		}
 	}
 
 	pm8008_debug(pm8008_reg, "voltage set to %d\n", min_uv);
@@ -420,14 +579,6 @@ static int pm8008_regulator_set_load(struct regulator_dev *rdev, int load_uA)
 		mode = REGULATOR_MODE_IDLE;
 
 	return pm8008_regulator_set_mode(rdev, mode);
-}
-
-static int pm8008_regulator_set_voltage_time(struct regulator_dev *rdev,
-				int old_uV, int new_uv)
-{
-	struct pm8008_regulator *pm8008_reg = rdev_get_drvdata(rdev);
-
-	return DIV_ROUND_UP(abs(new_uv - old_uV), pm8008_reg->step_rate);
 }
 
 static struct regulator_ops pm8008_regulator_ops = {
@@ -628,7 +779,7 @@ static int pm8008_regulator_probe(struct platform_device *pdev)
 /* PM8008 chip enable regulator callbacks */
 static int pm8008_enable_regulator_enable(struct regulator_dev *rdev)
 {
-	struct pm8008_regulator *chip = rdev_get_drvdata(rdev);
+	struct pm8008_chip *chip = rdev_get_drvdata(rdev);
 	int rc;
 
 	rc = pm8008_masked_write(chip->regmap, MISC_CHIP_ENABLE_REG,
@@ -644,7 +795,7 @@ static int pm8008_enable_regulator_enable(struct regulator_dev *rdev)
 
 static int pm8008_enable_regulator_disable(struct regulator_dev *rdev)
 {
-	struct pm8008_regulator *chip = rdev_get_drvdata(rdev);
+	struct pm8008_chip *chip = rdev_get_drvdata(rdev);
 	int rc;
 
 	rc = pm8008_masked_write(chip->regmap, MISC_CHIP_ENABLE_REG,
@@ -660,7 +811,7 @@ static int pm8008_enable_regulator_disable(struct regulator_dev *rdev)
 
 static int pm8008_enable_regulator_is_enabled(struct regulator_dev *rdev)
 {
-	struct pm8008_regulator *chip = rdev_get_drvdata(rdev);
+	struct pm8008_chip *chip = rdev_get_drvdata(rdev);
 	int rc;
 	u8 reg;
 

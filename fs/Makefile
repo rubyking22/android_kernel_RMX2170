@@ -130,3 +130,11 @@ obj-y				+= exofs/ # Multiple modules
 obj-$(CONFIG_CEPH_FS)		+= ceph/
 obj-$(CONFIG_PSTORE)		+= pstore/
 obj-$(CONFIG_EFIVAR_FS)		+= efivarfs/
+<<<<<<< HEAD
+=======
+
+#ifdef VENDOR_EDIT
+#Xinhua.Song@BSP.Driver, 2015/04/03, Add for exfat filesystem
+obj-$(CONFIG_EXFAT_FS)		+= exfat/
+#endif /*VENDOR_EDIT*/
+>>>>>>> 701842278181eacacae61f735cbe8ff6394944f8

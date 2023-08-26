@@ -768,6 +768,25 @@ migrate_top_tasks(struct task_struct *p, struct rq *src_rq, struct rq *dst_rq)
 	}
 }
 
+//#ifdef COLOROS_EDIT
+/*Tiren.Ma@ROM.Framework, 2019-12-10, add for improving ed task migration */
+void migrate_ed_task(struct task_struct *p, u64 wallclock,
+            struct rq *src_rq, struct rq *dest_rq)
+{
+    int src_cpu = cpu_of(src_rq);
+    int dest_cpu = cpu_of(dest_rq);
+
+    /* For ed task, reset last_wake_ts if task migrate to faster cpu */
+    if (capacity_orig_of(src_cpu) < capacity_orig_of(dest_cpu)) {
+        p->last_wake_ts = wallclock;
+        if(dest_rq->ed_task == p) {
+            dest_rq->ed_task = NULL;
+        }
+    }
+}
+extern int sysctl_ed_task_enabled;
+//#endif /*COLOROS_EDIT*/
+
 void fixup_busy_time(struct task_struct *p, int new_cpu)
 {
 	struct rq *src_rq = task_rq(p);
@@ -886,6 +905,13 @@ void fixup_busy_time(struct task_struct *p, int new_cpu)
 		}
 	}
 
+//#ifdef COLOROS_EDIT
+	/*Tiren.Ma@ROM.Framework, 2019-12-10, add for improving ed task migration */
+	if(sysctl_ed_task_enabled) {
+		migrate_ed_task(p, wallclock, src_rq, dest_rq);
+	}
+//#endif /*COLOROS_EDIT*/
+
 done:
 	if (p->state == TASK_WAKING)
 		double_rq_unlock(src_rq, dest_rq);
@@ -921,6 +947,9 @@ void set_window_start(struct rq *rq)
 
 unsigned int max_possible_efficiency = 1;
 unsigned int min_possible_efficiency = UINT_MAX;
+
+unsigned int sysctl_sched_conservative_pl;
+unsigned int sysctl_sched_many_wakeup_threshold = 1000;
 
 #define INC_STEP 8
 #define DEC_STEP 2

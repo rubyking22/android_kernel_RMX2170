@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2019, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -179,7 +179,8 @@ static void ufs_qcom_ice_cfg_work(struct work_struct *work)
 		return;
 
 	spin_lock_irqsave(&qcom_host->ice_work_lock, flags);
-	if (!qcom_host->req_pending) {
+	if (!qcom_host->req_pending ||
+			ufshcd_is_shutdown_ongoing(qcom_host->hba)) {
 		qcom_host->work_pending = false;
 		spin_unlock_irqrestore(&qcom_host->ice_work_lock, flags);
 		return;
@@ -651,6 +652,28 @@ int ufs_qcom_ice_resume(struct ufs_qcom_host *qcom_host)
 	qcom_host->ice.state = UFS_QCOM_ICE_STATE_ACTIVE;
 out:
 	return err;
+}
+
+/**
+ * ufs_qcom_is_ice_busy() - lets the caller of the function know if
+ * there is any ongoing operation in ICE in workqueue context.
+ * @qcom_host:	Pointer to a UFS QCom internal host structure.
+ *		qcom_host should be a valid pointer.
+ *
+ * Return:	1 if ICE is busy, 0 if it is free.
+ *		-EINVAL in case of error.
+ */
+int ufs_qcom_is_ice_busy(struct ufs_qcom_host *qcom_host)
+{
+	if (!qcom_host) {
+		pr_err("%s: invalid qcom_host %pK", __func__,  qcom_host);
+		return -EINVAL;
+	}
+
+	if (qcom_host->req_pending)
+		return 1;
+	else
+		return 0;
 }
 
 /**

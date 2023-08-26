@@ -299,6 +299,7 @@ static int gmu_iommu_cb_probe(struct gmu_device *gmu,
 		dev_err(&gmu->pdev->dev, "gmu iommu fail to attach %s device\n",
 			ctx->name);
 		iommu_domain_free(ctx->domain);
+		ctx->domain = NULL;
 	}
 
 	return ret;
@@ -375,6 +376,9 @@ static void gmu_kmem_close(struct gmu_device *gmu)
 	gmu->dump_mem = NULL;
 	gmu->gmu_log = NULL;
 
+	if (!ctx->domain)
+		return;
+
 	/* Unmap and free all memories in GMU kernel memory pool */
 	for (i = 0; i < GMU_KERNEL_ENTRIES; i++) {
 		if (!test_bit(i, &gmu_kmem_bitmap))
@@ -396,14 +400,23 @@ static void gmu_kmem_close(struct gmu_device *gmu)
 
 	/* free kernel mem context */
 	iommu_domain_free(ctx->domain);
+	ctx->domain = NULL;
 }
 
 static void gmu_memory_close(struct gmu_device *gmu)
 {
-	gmu_kmem_close(gmu);
-	/* Free user memory context */
-	iommu_domain_free(gmu_ctx[GMU_CONTEXT_USER].domain);
+	struct gmu_iommu_context *ctx = &gmu_ctx[GMU_CONTEXT_USER];
 
+	gmu_kmem_close(gmu);
+
+	if (ctx->domain) {
+		/* Detach the device from SMMU context bank */
+		iommu_detach_device(ctx->domain, ctx->dev);
+
+		/* Free user memory context */
+		iommu_domain_free(ctx->domain);
+		ctx->domain = NULL;
+	}
 }
 
 /*
@@ -1526,8 +1539,9 @@ static int gmu_enable_gdsc(struct gmu_device *gmu)
 }
 
 #define CX_GDSC_TIMEOUT	5000	/* ms */
-static int gmu_disable_gdsc(struct gmu_device *gmu)
+static int gmu_disable_gdsc(struct kgsl_device *device)
 {
+	struct gmu_device *gmu = KGSL_GMU_DEVICE(device);
 	int ret;
 	unsigned long t;
 
@@ -1549,13 +1563,13 @@ static int gmu_disable_gdsc(struct gmu_device *gmu)
 	 */
 	t = jiffies + msecs_to_jiffies(CX_GDSC_TIMEOUT);
 	do {
-		if (!regulator_is_enabled(gmu->cx_gdsc))
+		if (!gmu_core_dev_cx_is_on(device))
 			return 0;
 		usleep_range(10, 100);
 
 	} while (!(time_after(jiffies, t)));
 
-	if (!regulator_is_enabled(gmu->cx_gdsc))
+	if (!gmu_core_dev_cx_is_on(device))
 		return 0;
 
 	dev_err(&gmu->pdev->dev, "GMU CX gdsc off timeout");
@@ -1583,7 +1597,7 @@ static int gmu_suspend(struct kgsl_device *device)
 	if (ADRENO_QUIRK(adreno_dev, ADRENO_QUIRK_CX_GDSC))
 		regulator_set_mode(gmu->cx_gdsc, REGULATOR_MODE_IDLE);
 
-	gmu_disable_gdsc(gmu);
+	gmu_disable_gdsc(device);
 
 	if (ADRENO_QUIRK(adreno_dev, ADRENO_QUIRK_CX_GDSC))
 		regulator_set_mode(gmu->cx_gdsc, REGULATOR_MODE_NORMAL);
@@ -1757,7 +1771,7 @@ static void gmu_stop(struct kgsl_device *device)
 
 	gmu_dev_ops->rpmh_gpu_pwrctrl(adreno_dev, GMU_FW_STOP, 0, 0);
 	gmu_disable_clks(device);
-	gmu_disable_gdsc(gmu);
+	gmu_disable_gdsc(device);
 
 	msm_bus_scale_client_update_request(gmu->pcl, 0);
 	return;
@@ -1867,7 +1881,7 @@ static bool gmu_is_initialized(struct kgsl_device *device)
 	ret = gmu_dev_ops->is_initialized(adreno_dev);
 
 	gmu_disable_clks(device);
-	gmu_disable_gdsc(gmu);
+	gmu_disable_gdsc(device);
 
 	return ret;
 }

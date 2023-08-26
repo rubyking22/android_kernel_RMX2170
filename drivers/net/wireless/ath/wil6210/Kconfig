@@ -57,7 +57,11 @@ config WIL6210_DEBUGFS
 	bool "wil6210 debugfs support"
 	depends on WIL6210
 	depends on DEBUG_FS
+<<<<<<< HEAD
 	default y
+=======
+	default n
+>>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 	---help---
 	  Say Y here to enable wil6210 debugfs support, using the
 	  kernel debugfs infrastructure. Select this

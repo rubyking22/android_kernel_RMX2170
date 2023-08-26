@@ -281,6 +281,8 @@ static ssize_t restart_level_store(struct device *dev,
 
 	for (i = 0; i < ARRAY_SIZE(restart_levels); i++)
 		if (!strncasecmp(buf, restart_levels[i], count)) {
+			pil_ipc("[%s]: change restart level to %d\n",
+				subsys->desc->name, i);
 			subsys->restart_level = i;
 			return orig_count;
 		}
@@ -855,6 +857,26 @@ struct subsys_device *find_subsys_device(const char *str)
 }
 EXPORT_SYMBOL(find_subsys_device);
 
+#ifdef VENDOR_EDIT
+/* Fuchun.Liao@BSP.CHG.Basic 2018/11/27 modify for rf cable detect */
+int op_restart_modem(void)
+{
+	struct subsys_device *subsys = find_subsys_device("modem");
+	int restart_level;
+
+	if (!subsys)
+		return -ENODEV;
+	pr_err("%s\n", __func__);
+	restart_level = subsys->restart_level;
+	subsys->restart_level = RESET_SUBSYS_COUPLED;
+	if (subsystem_restart("modem") == -ENODEV)
+		pr_err("%s: SSR call modem failed\n", __func__);
+	subsys->restart_level = restart_level;
+	return 0;
+}
+EXPORT_SYMBOL(op_restart_modem);
+#endif /* VENDOR_EDIT */
+
 static int subsys_start(struct subsys_device *subsys)
 {
 	int ret;
@@ -875,7 +897,7 @@ static int subsys_start(struct subsys_device *subsys)
 		subsys_set_state(subsys, SUBSYS_ONLINE);
 		return 0;
 	}
-
+	pil_ipc("[%s]: before wait_for_err_ready\n", subsys->desc->name);
 	ret = wait_for_err_ready(subsys);
 	if (ret) {
 		/* pil-boot succeeded but we need to shutdown
@@ -891,6 +913,7 @@ static int subsys_start(struct subsys_device *subsys)
 
 	notify_each_subsys_device(&subsys, 1, SUBSYS_AFTER_POWERUP,
 								NULL);
+	pil_ipc("[%s]: exit\n", subsys->desc->name);
 	return ret;
 }
 
@@ -898,6 +921,7 @@ static void subsys_stop(struct subsys_device *subsys)
 {
 	const char *name = subsys->desc->name;
 
+	pil_ipc("[%s]: entry\n", subsys->desc->name);
 	notify_each_subsys_device(&subsys, 1, SUBSYS_BEFORE_SHUTDOWN, NULL);
 	reinit_completion(&subsys->shutdown_ack);
 	if (!of_property_read_bool(subsys->desc->dev->of_node,
@@ -916,6 +940,7 @@ static void subsys_stop(struct subsys_device *subsys)
 	subsys_set_state(subsys, SUBSYS_OFFLINE);
 	disable_all_irqs(subsys);
 	notify_each_subsys_device(&subsys, 1, SUBSYS_AFTER_SHUTDOWN, NULL);
+	pil_ipc("[%s]: exit\n", subsys->desc->name);
 }
 
 int subsystem_set_fwname(const char *name, const char *fw_name)
@@ -998,8 +1023,20 @@ void *__subsystem_get(const char *name, const char *fw_name)
 		}
 		ret = subsys_start(subsys);
 		if (ret) {
+		#ifdef VENDOR_EDIT
+		/*xing.xiong@BSP.Kernel.Driver, 2019/08/17, Add for avoid image load fail*/
+			msleep(200);
+			ret = subsys_start(subsys);
+			pr_warn("+++ BUSY: %s retry to power . (retry_cnt: 2) %d\n", name, ret);
+			if (ret) {
+				//panic("+++ Subsystem %s retry_cnt reached MAX!", name);
+				goto err_start;
+			}
+		#else
 			retval = ERR_PTR(ret);
 			goto err_start;
+		#endif
+
 		}
 	}
 	subsys->count++;
@@ -1609,7 +1646,7 @@ static int __get_smem_state(struct subsys_desc *desc, const char *prop,
 		desc->state = qcom_smem_state_get(desc->dev, prop, smem_bit);
 		if (IS_ERR_OR_NULL(desc->state)) {
 			pr_err("Could not get smem-states %s\n", prop);
-			return -ENXIO;
+			return PTR_ERR(desc->state);
 		}
 		return 0;
 	}
@@ -1827,6 +1864,11 @@ struct subsys_device *subsys_register(struct subsys_desc *desc)
 	strlcpy(subsys->desc->fw_name, desc->name,
 			sizeof(subsys->desc->fw_name));
 
+#if defined(VENDOR_EDIT) && defined(OPPO_RELEASE_BUILD) && !defined(OPPO_AGING_BUILD)
+/*xing.xiong@BSP.Kernel.Driver, 2019/03/28, Add for disable dump for subsys crash*/
+	subsys->restart_level = RESET_SUBSYS_COUPLED;
+#endif
+
 	subsys->notify = subsys_notif_add_subsys(desc->name);
 	subsys->early_notify = subsys_get_early_notif_info(desc->name);
 
@@ -1914,6 +1956,7 @@ err_sysmon_notifier:
 	if (ofnode)
 		subsys_remove_restart_order(ofnode);
 err_register:
+	subsys_char_device_remove(subsys);
 	device_unregister(&subsys->dev);
 	return ERR_PTR(ret);
 }

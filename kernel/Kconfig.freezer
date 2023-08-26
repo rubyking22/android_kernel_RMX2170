@@ -1,2 +1,12 @@
 config FREEZER
 	def_bool PM_SLEEP || CGROUP_FREEZER
+<<<<<<< HEAD
+=======
+
+#ifdef VENDOR_EDIT
+#zhoumingjun@Swdp.shanghai, 20117/07/13, add config for elsa stubs
+config ELSA_STUB
+	bool "Enable ELSA stub in kernel"
+	default n
+#endif
+>>>>>>> 701842278181eacacae61f735cbe8ff6394944f8

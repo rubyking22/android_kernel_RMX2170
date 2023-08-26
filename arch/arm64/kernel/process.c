@@ -65,6 +65,22 @@ unsigned long __stack_chk_guard __read_mostly;
 EXPORT_SYMBOL(__stack_chk_guard);
 #endif
 
+
+#ifdef VENDOR_EDIT
+/* YiXue.Ge@PSW.BSP.Kernel.Drv, 2017/11/27, add for some fault device can not reboot early */
+#include <soc/qcom/scm.h>
+static void do_restart_early(enum reboot_mode reboot_mode, const char *cmd);
+void do_poweroff_early(void);
+
+
+/*
+ * Function pointers to optional machine specific functions
+ */
+void (*pm_power_off)(void) = do_poweroff_early;
+EXPORT_SYMBOL_GPL(pm_power_off);
+
+void (*arm_pm_restart)(enum reboot_mode reboot_mode, const char *cmd) = do_restart_early;
+#else
 /*
  * Function pointers to optional machine specific functions
  */
@@ -72,6 +88,7 @@ void (*pm_power_off)(void);
 EXPORT_SYMBOL_GPL(pm_power_off);
 
 void (*arm_pm_restart)(enum reboot_mode reboot_mode, const char *cmd);
+#endif
 
 /*
  * This is our default idle handler.
@@ -130,6 +147,49 @@ void machine_halt(void)
 	smp_send_stop();
 	while (1);
 }
+
+#ifdef VENDOR_EDIT
+/* YiXue.Ge@PSW.BSP.Kernel.Drv, 2017/11/27, add for some fault device can not reboot early */
+
+/*maybe system crashed at early boot time .at that time maybe pm_power_off and
+  *arm_pm_restart are not defined
+  */
+#define PS_HOLD_ADDR 0xc264000 			//sm6150.dtsi
+#define SCM_IO_DEASSERT_PS_HOLD		2 	//msm-poweroff.c
+
+static void pull_down_pshold(void)
+{
+	struct scm_desc desc = {
+		.args[0] = 0,
+		.arginfo = SCM_ARGS(1),
+	};
+	void __iomem *msm_ps_hold = ioremap(PS_HOLD_ADDR , 4);;
+
+	printk("user do_msm_restart_early to reboot\n");
+	if (scm_is_call_available(SCM_SVC_PWR, SCM_IO_DEASSERT_PS_HOLD) > 0)
+	{
+		/* This call will be available on ARMv8 only */
+		scm_call2_atomic(SCM_SIP_FNID(SCM_SVC_PWR,
+				 SCM_IO_DEASSERT_PS_HOLD), &desc);
+
+	}
+	/* Fall-through to the direct write in case the scm_call "returns" */
+	if(msm_ps_hold)
+		__raw_writel(0, msm_ps_hold);
+
+	mdelay(10000);
+
+}
+static void do_restart_early(enum reboot_mode reboot_mode, const char *cmd)
+{
+	pull_down_pshold();
+}
+
+void do_poweroff_early(void)
+{
+	pull_down_pshold();
+}
+#endif
 
 /*
  * Power-off simply requires that the secondary CPUs stop performing any
@@ -367,7 +427,7 @@ int copy_thread(unsigned long clone_flags, unsigned long stack_start,
 			childregs->pstate |= PSR_UAO_BIT;
 
 		if (arm64_get_ssbd_state() == ARM64_SSBD_FORCE_DISABLE)
-			childregs->pstate |= PSR_SSBS_BIT;
+			set_ssbs_bit(childregs);
 
 		p->thread.cpu_context.x19 = stack_start;
 		p->thread.cpu_context.x20 = stk_sz;
@@ -409,6 +469,32 @@ void uao_thread_switch(struct task_struct *next)
 }
 
 /*
+ * Force SSBS state on context-switch, since it may be lost after migrating
+ * from a CPU which treats the bit as RES0 in a heterogeneous system.
+ */
+static void ssbs_thread_switch(struct task_struct *next)
+{
+	struct pt_regs *regs = task_pt_regs(next);
+
+	/*
+	 * Nothing to do for kernel threads, but 'regs' may be junk
+	 * (e.g. idle task) so check the flags and bail early.
+	 */
+	if (unlikely(next->flags & PF_KTHREAD))
+		return;
+
+	/* If the mitigation is enabled, then we leave SSBS clear. */
+	if ((arm64_get_ssbd_state() == ARM64_SSBD_FORCE_ENABLE) ||
+	    test_tsk_thread_flag(next, TIF_SSBD))
+		return;
+
+	if (compat_user_mode(regs))
+		set_compat_ssbs_bit(regs);
+	else if (user_mode(regs))
+		set_ssbs_bit(regs);
+}
+
+/*
  * We store our current task in sp_el0, which is clobbered by userspace. Keep a
  * shadow copy so that we can restore this upon entry from userspace.
  *
@@ -436,6 +522,7 @@ __notrace_funcgraph struct task_struct *__switch_to(struct task_struct *prev,
 	contextidr_thread_switch(next);
 	entry_task_switch(next);
 	uao_thread_switch(next);
+	ssbs_thread_switch(next);
 
 	/*
 	 * Complete any pending TLB or cache maintenance on this CPU in case
@@ -504,3 +591,45 @@ void arch_setup_new_exec(void)
 {
 	current->mm->context.flags = is_compat_task() ? MMCF_AARCH32 : 0;
 }
+
+#if defined(VENDOR_EDIT) && defined(CONFIG_ELSA_STUB)
+//zhoumingjun@Swdp.shanghai, 2017/04/19, add process_event_notifier support
+static BLOCKING_NOTIFIER_HEAD(process_event_notifier);
+
+int process_event_register_notifier(struct notifier_block *nb)
+{
+	return blocking_notifier_chain_register(&process_event_notifier, nb);
+}
+EXPORT_SYMBOL(process_event_register_notifier);
+
+int process_event_unregister_notifier(struct notifier_block *nb)
+{
+	return blocking_notifier_chain_unregister(&process_event_notifier, nb);
+}
+EXPORT_SYMBOL(process_event_unregister_notifier);
+
+int process_event_notifier_call_chain(unsigned long action, struct process_event_data *pe_data)
+{
+	return blocking_notifier_call_chain(&process_event_notifier, action, pe_data);
+}
+
+//zhoumingjun@Swdp.shanghai, 2017/07/06, add process_event_notifier_atomic support
+static ATOMIC_NOTIFIER_HEAD(process_event_notifier_atomic);
+
+int process_event_register_notifier_atomic(struct notifier_block *nb)
+{
+	return atomic_notifier_chain_register(&process_event_notifier_atomic, nb);
+}
+EXPORT_SYMBOL(process_event_register_notifier_atomic);
+
+int process_event_unregister_notifier_atomic(struct notifier_block *nb)
+{
+	return atomic_notifier_chain_unregister(&process_event_notifier_atomic, nb);
+}
+EXPORT_SYMBOL(process_event_unregister_notifier_atomic);
+
+int process_event_notifier_call_chain_atomic(unsigned long action, struct process_event_data *pe_data)
+{
+	return atomic_notifier_call_chain(&process_event_notifier_atomic, action, pe_data);
+}
+#endif

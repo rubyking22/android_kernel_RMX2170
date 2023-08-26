@@ -14,6 +14,10 @@
 
 #include "sdxprairie.dtsi"
 #include "sdxprairie-mtp.dtsi"
+<<<<<<< HEAD
+=======
+#include "sdxprairie-bluetooth.dtsi"
+>>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 
 / {
 	model = "Qualcomm Technologies, Inc. SDXPRAIRIE MTP";
@@ -25,7 +29,10 @@
 &qnand_1 {
 	status = "ok";
 };
+<<<<<<< HEAD
 
 &blsp1_uart2b_hs {
 	status = "okay";
 };
+=======
+>>>>>>> 701842278181eacacae61f735cbe8ff6394944f8

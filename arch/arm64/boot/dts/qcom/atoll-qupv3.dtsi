@@ -29,7 +29,7 @@
 		qcom,msm-bus,vectors-bus-ids =
 			<MSM_BUS_MASTER_QUP_CORE_0 MSM_BUS_SLAVE_QUP_CORE_0>,
 			<MSM_BUS_MASTER_QUP_0 MSM_BUS_SLAVE_EBI_CH0>;
-		qcom,iommu-s1-bypass;
+		qcom,iommu-atomic-ctx;
 
 		iommu_qupv3_0_geni_se_cb: qcom,iommu_qupv3_0_geni_se_cb {
 			compatible = "qcom,qupv3-geni-se-cb";
@@ -305,7 +305,7 @@
 		qcom,msm-bus,vectors-bus-ids =
 			<MSM_BUS_MASTER_QUP_CORE_1 MSM_BUS_SLAVE_QUP_CORE_1>,
 			<MSM_BUS_MASTER_QUP_1 MSM_BUS_SLAVE_EBI_CH0>;
-		qcom,iommu-s1-bypass;
+		qcom,iommu-atomic-ctx;
 
 		iommu_qupv3_1_geni_se_cb: qcom,iommu_qupv3_1_geni_se_cb {
 			compatible = "qcom,qupv3-geni-se-cb";
@@ -396,7 +396,13 @@
 		dmas = <&gpi_dma1 0 4 1 64 0>,
 			<&gpi_dma1 1 4 1 64 0>;
 		dma-names = "tx", "rx";
-		status = "disabled";
+	/*#ifndef ODM_LQ_EDIT*/
+	/*zengjianxiong@ODM_LQ@BSP.Touch,2019/10/03
+	,modified for bring up TP*/
+		/*status = "disabled";*/
+	/*else ODM_LQ_EDIT*/
+		status = "ok";
+	/*#endif ODM_LQ_EDIT*/
 	};
 
 	qupv3_se11_spi: spi@a94000 {
