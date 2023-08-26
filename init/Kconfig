@@ -1640,17 +1640,6 @@ config VM_EVENT_COUNTERS
 	  on EXPERT systems.  /proc/vmstat will only show page counts
 	  if VM event counters are disabled.
 
-<<<<<<< HEAD
-config SLUB_DEBUG
-	default y
-	bool "Enable SLUB debugging support" if EXPERT
-	depends on SLUB && SYSFS
-	help
-	  SLUB has extensive debug support features. Disabling these can
-	  result in significant savings in code size. This also disables
-	  SLUB sysfs support. /sys/slab will not exist and there will be
-	  no support for cache validation etc.
-=======
 #ifdef VENDOR_EDIT
 #Wen.Luo@Bsp.Kernel.Stability, 2018/12/05, Add for aging test, slub debug config
 config OPPO_SLUB_TEST
@@ -1690,7 +1679,6 @@ config SLAB_STAT_DEBUG
 	  To get more slab details, such as the total objects, this option is
 	  to collect slab info on SLUB_DEBUG is closed.
 #endif /* VENDOR_EDIT */
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 
 config SLUB_MEMCG_SYSFS_ON
 	default n
@@ -1860,9 +1848,6 @@ config HAVE_GENERIC_DMA_COHERENT
 config SLABINFO
 	bool
 	depends on PROC_FS
-<<<<<<< HEAD
-	depends on SLAB || SLUB_DEBUG
-=======
 #ifndef VENDOR_EDIT
 # /* Kui.Zhang@PSW.BSP.Kernel.Performance, 2018-11-12, if SLAB_STAT_DEBUG is
 #  * is enabled, /proc/slabinfo is created for getting more slab details.
@@ -1870,7 +1855,6 @@ config SLABINFO
 #else
 	depends on SLAB || SLUB_DEBUG || SLAB_STAT_DEBUG
 #endif
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 	default y
 
 config RT_MUTEXES

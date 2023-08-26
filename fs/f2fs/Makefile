@@ -8,10 +8,7 @@ f2fs-$(CONFIG_F2FS_STAT_FS) += debug.o
 f2fs-$(CONFIG_F2FS_FS_XATTR) += xattr.o
 f2fs-$(CONFIG_F2FS_FS_POSIX_ACL) += acl.o
 f2fs-$(CONFIG_F2FS_IO_TRACE) += trace.o
-<<<<<<< HEAD
-=======
 #ifdef VENDOR_EDIT
 #yanwu@TECH.Storage.FS.oF2FS, 2019/08/14, add f2fs bigdata statistics
 f2fs-$(CONFIG_F2FS_BD_STAT) += of2fs_sysfs.o
 #endif
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8

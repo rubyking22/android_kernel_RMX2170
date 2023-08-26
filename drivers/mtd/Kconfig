@@ -326,8 +326,6 @@ config MTD_PARTITIONED_MASTER
 	  the parent of the partition device be the master device, rather than
 	  what lies behind the master.
 
-<<<<<<< HEAD
-=======
 config MTD_LAZYECCSTATS
 	bool "MTD Lazy ECC Stats collection support"
 	default y
@@ -339,7 +337,6 @@ config MTD_LAZYECCSTATS
 	  This can significantly decrease boot times depending on the size of
 	  the partition.  If unsure, say 'N'.
 
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 source "drivers/mtd/chips/Kconfig"
 
 source "drivers/mtd/maps/Kconfig"

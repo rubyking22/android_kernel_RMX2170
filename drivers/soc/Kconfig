@@ -17,9 +17,5 @@ source "drivers/soc/ti/Kconfig"
 source "drivers/soc/ux500/Kconfig"
 source "drivers/soc/versatile/Kconfig"
 source "drivers/soc/zte/Kconfig"
-<<<<<<< HEAD
-
-=======
 source "drivers/soc/oppo/Kconfig"
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 endmenu

@@ -2820,20 +2820,12 @@ static int snd_soc_dapm_add_route(struct snd_soc_dapm_context *dapm,
 		wsource = wtsource;
 
 	if (wsource == NULL) {
-<<<<<<< HEAD
-		dev_err(dapm->dev, "ASoC: no source widget found for %s\n",
-=======
 		dev_dbg(dapm->dev, "ASoC: no source widget found for %s\n",
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 			route->source);
 		return -ENODEV;
 	}
 	if (wsink == NULL) {
-<<<<<<< HEAD
-		dev_err(dapm->dev, "ASoC: no sink widget found for %s\n",
-=======
 		dev_dbg(dapm->dev, "ASoC: no sink widget found for %s\n",
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 			route->sink);
 		return -ENODEV;
 	}
@@ -2938,11 +2930,7 @@ int snd_soc_dapm_add_routes(struct snd_soc_dapm_context *dapm,
 	for (i = 0; i < num; i++) {
 		r = snd_soc_dapm_add_route(dapm, route);
 		if (r < 0) {
-<<<<<<< HEAD
-			dev_err(dapm->dev, "ASoC: Failed to add route %s -> %s -> %s\n",
-=======
 			dev_dbg(dapm->dev, "ASoC: Failed to add route %s -> %s -> %s\n",
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 				route->source,
 				route->control ? route->control : "direct",
 				route->sink);

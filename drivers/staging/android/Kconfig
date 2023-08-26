@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-menu "Android"
-=======
 menu "Android" 
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 
 if ANDROID
 
@@ -47,12 +43,6 @@ config ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES
 	  /sys/module/lowmemorykiller/parameters/adj and convert them
 	  to oom_score_adj values.
 
-<<<<<<< HEAD
-source "drivers/staging/android/ion/Kconfig"
-
-source "drivers/staging/android/fiq_debugger/Kconfig"
-
-=======
 #ifdef VENDOR_EDIT
 #Kun.Zhou@ROM.Framework, 2019/09/23, add for hans freeze manager
 config OPPO_HANS
@@ -63,7 +53,6 @@ config OPPO_HANS
 #endif
 source "drivers/staging/android/ion/Kconfig"
 
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 endif # if ANDROID
 
 endmenu

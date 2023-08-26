@@ -102,8 +102,6 @@ config F2FS_FAULT_INJECTION
 	  Test F2FS to inject faults such as ENOMEM, ENOSPC, and so on.
 
 	  If unsure, say N.
-<<<<<<< HEAD
-=======
 
 #ifdef VENDOR_EDIT
 #yanwu@TECH.Storage.FS.oF2FS, 2019/08/14, add f2fs big-data statistics
@@ -127,4 +125,3 @@ config F2FS_BD_STAT
 	  /proc/fs/f2fs/<partition>/hotcold_info
 	    - hot/cold statistics information
 #endif
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8

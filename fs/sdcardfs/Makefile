@@ -5,8 +5,6 @@ EXTRA_CFLAGS += -DSDCARDFS_VERSION=\"$(SDCARDFS_VERSION)\"
 obj-$(CONFIG_SDCARD_FS) += sdcardfs.o
 
 sdcardfs-y := dentry.o file.o inode.o main.o super.o lookup.o mmap.o packagelist.o derived_perm.o
-<<<<<<< HEAD
-=======
 #ifdef VENDOR_EDIT
 #Jiemin.Zhu@PSW.Android.SdardFs, 2017/12/12, Add for sdcardfs delete dcim record
 sdcardfs-y += dev.o
@@ -14,4 +12,3 @@ sdcardfs-y += dev.o
 sdcardfs-y += xattr.o
 sdcardfs-y += dellog.o
 #endif /* VENDOR_EDIT */
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8

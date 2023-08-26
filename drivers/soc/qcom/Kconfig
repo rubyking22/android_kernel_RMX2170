@@ -490,8 +490,6 @@ config MSM_GLADIATOR_ERP
 
 	  If unsure, say N.
 
-<<<<<<< HEAD
-=======
 config SDX_EXT_IPC
 	tristate "QCOM external ipc driver"
 	help
@@ -502,7 +500,6 @@ config SDX_EXT_IPC
 
 	  If unsure, say N.
 
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 config PANIC_ON_GLADIATOR_ERROR
 	depends on MSM_GLADIATOR_ERP
 	bool "Panic on GLADIATOR error report"
@@ -558,8 +555,6 @@ config ICNSS_QMI
 	and configurations. It also send WLAN on/off control message to FW
 	over QMI channel.
 
-<<<<<<< HEAD
-=======
 config CNSS_TIMESYNC
 	bool "cnss TIME SYNC support"
 	depends on ICNSS
@@ -569,7 +564,6 @@ config CNSS_TIMESYNC
 	  deriving WLAN mac time stamp relation when FTM based clock sync is
 	  used.
 
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 config QCOM_EUD
 	tristate "QTI Embedded USB Debugger (EUD)"
 	depends on ARCH_QCOM

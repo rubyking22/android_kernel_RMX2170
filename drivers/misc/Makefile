@@ -69,14 +69,11 @@ obj-$(CONFIG_OKL4_USER_VIRQ)	+= okl4-virq.o
 obj-$(CONFIG_OKL4_RINGBUF)	+= okl4-ringbuf.o
 obj-$(CONFIG_TEST_IRQ_REQUESTER) += irq_requester.o
 
-<<<<<<< HEAD
-=======
 #ifdef VENDOR_EDIT
 # Mengmeng.Wang@SRC.System, 2018/08/28, Add for oiface
 obj-y				+= schedx.o
 #endif
 
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_core.o
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_bugs.o
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_heap.o
@@ -90,8 +87,7 @@ CFLAGS_lkdtm_rodata.o		+= $(DISABLE_LTO)
 
 OBJCOPYFLAGS :=
 OBJCOPYFLAGS_lkdtm_rodata_objcopy.o := \
-			--set-section-flags .text=alloc,readonly \
-			--rename-section .text=.rodata
+			--rename-section .text=.rodata,alloc,readonly
 targets += lkdtm_rodata.o lkdtm_rodata_objcopy.o
 $(obj)/lkdtm_rodata_objcopy.o: $(obj)/lkdtm_rodata.o FORCE
 	$(call if_changed,objcopy)
@@ -99,8 +95,6 @@ $(obj)/lkdtm_rodata_objcopy.o: $(obj)/lkdtm_rodata.o FORCE
 obj-$(CONFIG_OKL4_USER_VIPC)    += okl4-vipc.o
 obj-$(CONFIG_OKL4_GUEST)        += okl4-panic.o
 obj-$(CONFIG_OKL4_LINK_SHBUF)    += okl4-link-shbuf.o
-<<<<<<< HEAD
-=======
 #ifdef VENDOR_EDIT
 #//bajrang.patidar@BSP.kernel.Basic, 2019/09/03, add oppo motor for camera
 obj-$(CONFIG_OPPO_MOTOR) += oppo_motor/ motor.o
@@ -110,4 +104,3 @@ obj-$(CONFIG_OPPO_MOTOR) += oppo_motor/ motor.o
 #/*Lixiang.Xue@ODM_LQ@BSP.rf_cable,2019/11/29 Add RF cable connection status*/
 obj-$(CONFIG_RF_CABLE) += oppo_rf_cable_monitor.o
 #endif /*VENDOR_EDIT*/
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8

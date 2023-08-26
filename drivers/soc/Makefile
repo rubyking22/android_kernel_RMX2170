@@ -23,7 +23,4 @@ obj-$(CONFIG_SOC_TI)		+= ti/
 obj-$(CONFIG_ARCH_U8500)	+= ux500/
 obj-$(CONFIG_PLAT_VERSATILE)	+= versatile/
 obj-$(CONFIG_ARCH_ZX)		+= zte/
-<<<<<<< HEAD
-=======
 obj-y						+= oppo/
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8

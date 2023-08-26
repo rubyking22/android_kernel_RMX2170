@@ -63,7 +63,4 @@ obj-$(CONFIG_GENERIC_ADC_THERMAL)	+= thermal-generic-adc.o
 obj-$(CONFIG_ZX2967_THERMAL)	+= zx2967_thermal.o
 obj-$(CONFIG_UNIPHIER_THERMAL)	+= uniphier_thermal.o
 obj-$(CONFIG_THERMAL_TSENS)	+= msm-tsens.o tsens2xxx.o tsens-dbg.o tsens-mtc.o tsens1xxx.o tsens_calib.o
-<<<<<<< HEAD
-=======
 obj-$(CONFIG_HORAE_THERMAL_SHELL) += horae_shell_temp.o
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8

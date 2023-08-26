@@ -881,8 +881,6 @@ config NETFILTER_XT_TARGET_LOG
 
 	  To compile it as a module, choose M here.  If unsure, say N.
 
-<<<<<<< HEAD
-=======
 #ifdef VENDOR_EDIT
 #Junyuan.Huang@PSW.CN.WiFi.Network.1471780, 2018/06/26,
 #Add for limit speed function
@@ -899,7 +897,6 @@ config NETFILTER_XT_TARGET_IMQ
           To compile it as a module, choose M here.  If unsure, say N.
 #endif /* VENDOR_EDIT */
 
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 config NETFILTER_XT_TARGET_MARK
 	tristate '"MARK" target support'
 	depends on NETFILTER_ADVANCED
@@ -1428,8 +1425,6 @@ config NETFILTER_XT_MATCH_PKTTYPE
 
 	  To compile it as a module, choose M here.  If unsure, say N.
 
-<<<<<<< HEAD
-=======
 #ifdef VENDOR_EDIT
 #Yunqing.Zeng@BSP.Power.Basic 2018/01/11 add for backup of netstat before sleep
 config NETFILTER_XT_MATCH_QTAGUID
@@ -1458,7 +1453,6 @@ config XT_QTAGUID_OPPO_STATS
 	  If unsure, say `N'.
 #endif /* VENDOR_EDIT */
 
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 config NETFILTER_XT_MATCH_QUOTA
 	tristate '"quota" match support'
 	depends on NETFILTER_ADVANCED

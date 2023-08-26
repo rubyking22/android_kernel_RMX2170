@@ -105,8 +105,6 @@ obj-$(CONFIG_HARDENED_USERCOPY) += usercopy.o
 obj-$(CONFIG_PERCPU_STATS) += percpu-stats.o
 obj-$(CONFIG_HMM) += hmm.o
 obj-$(CONFIG_PROCESS_RECLAIM)	+= process_reclaim.o
-<<<<<<< HEAD
-=======
 #ifdef VENDOR_EDIT
 #/* Huacai.Zhou@PSW.BSP.Kernel.MM, 2018-07-07, add alloc wait monitor support*/
 obj-$(CONFIG_OPPO_MEM_MONITOR) += memory_monitor.o
@@ -115,4 +113,3 @@ obj-$(CONFIG_OPPO_MEM_MONITOR) += memory_monitor.o
 #/* Kui.Zhang@TEC.Kernel.Performance, 2019-03-13, add new interface for process memory reclaim*/
 obj-$(CONFIG_PROCESS_RECLAIM) += process_mm_reclaim.o
 #endif /*defined(VENDOR_EDIT) && defined(CONFIG_VIRTUAL_RESERVE_MEMORY)*/
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8

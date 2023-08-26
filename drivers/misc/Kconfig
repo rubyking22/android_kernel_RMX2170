@@ -600,13 +600,10 @@ source "drivers/misc/genwqe/Kconfig"
 source "drivers/misc/echo/Kconfig"
 source "drivers/misc/cxl/Kconfig"
 source "drivers/misc/fpr_FingerprintCard/Kconfig"
-<<<<<<< HEAD
-=======
 #ifdef VENDOR_EDIT
 #//bajrang.patidar@BSP.kernel.Basic, 2019/09/03, add oppo motor for camera
 source "drivers/misc/oppo_motor/Kconfig"
 #endif /*VENDOR_EDIT*/
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 endmenu
 
 config OKL4_USER_VIPC
@@ -627,8 +624,6 @@ config OKL4_LINK_SHBUF
 	      transport. This driver presents the link to Linux as a character device
 	      which can be written to or read from to access the shared memory. An ioctl
 	      on the device is used to send a virtual interrupt to the partner cell.
-<<<<<<< HEAD
-=======
 
 #ifdef ODM_LQ_EDIT
 #/*Lixiang.Xue@ODM_LQ@BSP.rf_cable,2019/11/29 Add RF cable connection status*/
@@ -638,4 +633,3 @@ config RF_CABLE
 	    help
 	      Enable RF cable connection status check.
 #endif
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8

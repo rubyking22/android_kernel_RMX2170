@@ -2871,10 +2871,6 @@ static int binder_fixup_parent(struct binder_transaction *t,
 	return 0;
 }
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 701842278181eacacae61f735cbe8ff6394944f8
 /**
  * binder_proc_transaction() - sends a transaction to a process and wakes it up
  * @t:		transaction to send
